@@ -104,6 +104,13 @@ function loadPlaywright() {
     ['[a]', 'b = 1']
   );
 
+  await runCase(
+    'properties → json',
+    'properties', 'json',
+    'server.host = localhost\nserver.port = 8080',
+    ['"server.host": "localhost"', '"server.port": 8080']
+  );
+
   // Sample chips for the new formats load and convert
   await page.selectOption('#toSelect', 'json');
   await page.click('.sample-chip[data-sample="logs"]');
@@ -225,7 +232,7 @@ function loadPlaywright() {
   for (const f of failures) console.error('FAIL  ' + f);
   for (const e of pageErrors) console.error('PAGEERROR  ' + e);
   if (failures.length || pageErrors.length) process.exit(1);
-  console.log('SMOKE OK (12 cases)');
+  console.log('SMOKE OK (13 cases)');
 })().catch(err => {
   console.error(err);
   process.exit(1);

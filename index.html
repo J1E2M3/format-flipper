@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Format Flipper — Convert JSON, YAML, CSV, XML, SQL · Tooly McToolface</title>
-<meta name="description" content="Convert between JSON, NDJSON, YAML, TOML, INI, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 11 formats, any direction. Free, in your browser.">
+<meta name="description" content="Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 12 formats, any direction. Free, in your browser.">
 <meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
 
-<meta property="og:title" content="Format Flipper — Convert between 11 data formats">
+<meta property="og:title" content="Format Flipper — Convert between 12 data formats">
 <meta property="og:description" content="JSON ⇄ YAML ⇄ CSV ⇄ XML ⇄ Markdown ⇄ HTML ⇄ SQL. Any format to any other. Free, in your browser.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/og-format.png">
@@ -35,7 +35,7 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Format Flipper",
-  "description": "Convert between JSON, NDJSON, YAML, TOML, INI, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT statements.",
+  "description": "Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT statements.",
   "url": "https://toolymctoolface.com/format/",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any (browser)",
@@ -491,9 +491,9 @@
   </nav>
 
   <section class="hero">
-    <div class="eyebrow">Format Flipper · 11 formats · 110 directions</div>
+    <div class="eyebrow">Format Flipper · 12 formats · 132 directions</div>
     <h1>JSON, CSV, YAML, <span class="swash">flipped.</span></h1>
-    <p>Paste data in any of 11 formats. Pick what you want it to become. Get it instantly. <em>Works entirely in your browser</em> — your data never leaves your device.</p>
+    <p>Paste data in any of 12 formats. Pick what you want it to become. Get it instantly. <em>Works entirely in your browser</em> — your data never leaves your device.</p>
   </section>
 
   <div class="format-row">
@@ -505,6 +505,7 @@
         <option value="yaml">YAML</option>
         <option value="toml">TOML</option>
         <option value="ini">INI</option>
+        <option value="properties">.properties</option>
         <option value="csv">CSV</option>
         <option value="tsv">TSV</option>
         <option value="xml">XML</option>
@@ -524,6 +525,7 @@
         <option value="yaml">YAML</option>
         <option value="toml">TOML</option>
         <option value="ini">INI</option>
+        <option value="properties">.properties</option>
         <option value="csv" selected>CSV</option>
         <option value="tsv">TSV</option>
         <option value="xml">XML</option>
@@ -589,7 +591,7 @@
     <div class="faq-grid">
       <div class="faq-item">
         <h4>Can I convert between any two formats?</h4>
-        <p>Yes — all 110 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go <code>JSON → TOML → SQL → YAML</code> and back without losing anything (as long as the structure is tabular or JSON-compatible).</p>
+        <p>Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go <code>JSON → TOML → SQL → YAML</code> and back without losing anything (as long as the structure is tabular or JSON-compatible).</p>
       </div>
       <div class="faq-item">
         <h4>What's tabular data?</h4>
@@ -1044,6 +1046,76 @@ function iniUnquote(raw, err) {
   return out;
 }
 
+function parseProperties(text, opts) {
+  const records = {};
+  const physical = text.split(/\r?\n/);
+  const logical = [];
+  for (let i = 0; i < physical.length; i++) {
+    let line = physical[i];
+    const no = i + 1;
+    while (propHasContinuation(line) && i + 1 < physical.length) {
+      line = line.slice(0, -1) + physical[++i].replace(/^[ \t]+/, '');
+    }
+    logical.push({ line, no });
+  }
+  let lineNo = 0;
+  const err = msg => { throw new Error(`Properties line ${lineNo}: ${msg}`); };
+  for (const entry of logical) {
+    lineNo = entry.no;
+    const line = entry.line.replace(/^[ \t]+/, '');
+    if (!line) continue;
+    if (line[0] === '#' || line[0] === '!') continue;
+    // Key ends at the first unescaped =, :, or whitespace
+    let idx = -1;
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '\\') { j++; continue; }
+      if (line[j] === '=' || line[j] === ':' || line[j] === ' ' || line[j] === '\t') { idx = j; break; }
+    }
+    let keyRaw, valRaw;
+    if (idx < 0) {
+      keyRaw = line;
+      valRaw = '';
+    } else {
+      keyRaw = line.slice(0, idx);
+      let rest = line.slice(idx).replace(/^[ \t]+/, '');
+      if (rest[0] === '=' || rest[0] === ':') rest = rest.slice(1).replace(/^[ \t]+/, '');
+      valRaw = rest;
+    }
+    const key = propUnescape(keyRaw, err);
+    if (!key) err('empty key');
+    if (key in records) err(`duplicate key "${key}"`);
+    records[key] = coerceScalar(propUnescape(valRaw, err), opts);
+  }
+  return records;
+}
+
+function propHasContinuation(line) {
+  let n = 0;
+  for (let i = line.length - 1; i >= 0 && line[i] === '\\'; i--) n++;
+  return n % 2 === 1;
+}
+
+function propUnescape(s, err) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c !== '\\') { out += c; continue; }
+    const n = s[++i];
+    if (n === undefined) break;
+    if (n === 'n') out += '\n';
+    else if (n === 't') out += '\t';
+    else if (n === 'r') out += '\r';
+    else if (n === 'f') out += '\f';
+    else if (n === 'u') {
+      const hex = s.slice(i + 1, i + 5);
+      if (!/^[0-9a-fA-F]{4}$/.test(hex)) err('invalid \\uXXXX escape');
+      out += String.fromCharCode(parseInt(hex, 16));
+      i += 4;
+    } else out += n;
+  }
+  return out;
+}
+
 // ============================================================
 // SERIALIZERS — JS value → format text
 // ============================================================
@@ -1282,6 +1354,52 @@ function iniFormatValue(v) {
     s !== s.trim();
   if (!ambiguous) return s;
   return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+}
+
+function serializeProperties(data) {
+  if (data === null || data === undefined) return '';
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Properties output needs a top-level object. Wrap your array: e.g. { items: [...] }');
+  }
+  const lines = [];
+  propEmit(data, [], lines);
+  return lines.join('\n');
+}
+
+function propEmit(obj, path, lines) {
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+      // Nested objects flatten into dotted keys (one-way: parse keeps keys flat)
+      propEmit(v, path.concat([k]), lines);
+    } else {
+      lines.push(propEscapeKey(path.concat([k]).join('.')) + ' = ' + propEscapeValue(v));
+    }
+  }
+}
+
+function propEscapeKey(k) {
+  return String(k)
+    .replace(/\\/g, '\\\\')
+    .replace(/=/g, '\\=')
+    .replace(/:/g, '\\:')
+    .replace(/ /g, '\\ ')
+    .replace(/\t/g, '\\t')
+    .replace(/\n/g, '\\n')
+    .replace(/^([#!])/, '\\$1');
+}
+
+function propEscapeValue(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'object') v = JSON.stringify(v);
+  return String(v)
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\f/g, '\\f')
+    .replace(/^ /, '\\ ');
 }
 
 // ============================================================
@@ -1695,10 +1813,10 @@ function tomlFormatValue(v) {
 }
 
 // Registry
-const PARSERS = { json: parseJson, ndjson: parseNdjson, yaml: parseYaml, toml: parseToml, ini: parseIni, csv: parseCsv, tsv: parseTsv, xml: parseXml, md: parseMarkdownTable, html: parseHtmlTable, sql: parseSqlInsert };
-const SERIALIZERS = { json: serializeJson, ndjson: serializeNdjson, yaml: serializeYaml, toml: serializeToml, ini: serializeIni, csv: serializeCsv, tsv: serializeTsv, xml: serializeXml, md: serializeMarkdownTable, html: serializeHtmlTable, sql: serializeSqlInsert };
-const FORMAT_LABELS = { json: 'JSON', ndjson: 'NDJSON', yaml: 'YAML', toml: 'TOML', ini: 'INI', csv: 'CSV', tsv: 'TSV', xml: 'XML', md: 'Markdown', html: 'HTML', sql: 'SQL' };
-const FORMAT_EXT = { json: 'json', ndjson: 'ndjson', yaml: 'yaml', toml: 'toml', ini: 'ini', csv: 'csv', tsv: 'tsv', xml: 'xml', md: 'md', html: 'html', sql: 'sql' };
+const PARSERS = { json: parseJson, ndjson: parseNdjson, yaml: parseYaml, toml: parseToml, ini: parseIni, properties: parseProperties, csv: parseCsv, tsv: parseTsv, xml: parseXml, md: parseMarkdownTable, html: parseHtmlTable, sql: parseSqlInsert };
+const SERIALIZERS = { json: serializeJson, ndjson: serializeNdjson, yaml: serializeYaml, toml: serializeToml, ini: serializeIni, properties: serializeProperties, csv: serializeCsv, tsv: serializeTsv, xml: serializeXml, md: serializeMarkdownTable, html: serializeHtmlTable, sql: serializeSqlInsert };
+const FORMAT_LABELS = { json: 'JSON', ndjson: 'NDJSON', yaml: 'YAML', toml: 'TOML', ini: 'INI', properties: 'Properties', csv: 'CSV', tsv: 'TSV', xml: 'XML', md: 'Markdown', html: 'HTML', sql: 'SQL' };
+const FORMAT_EXT = { json: 'json', ndjson: 'ndjson', yaml: 'yaml', toml: 'toml', ini: 'ini', properties: 'properties', csv: 'csv', tsv: 'tsv', xml: 'xml', md: 'md', html: 'html', sql: 'sql' };
 
 // ============================================================
 // State + rendering
@@ -1797,7 +1915,7 @@ function renderOptions() {
   if (state.from === 'csv') {
     opts.push({ type: 'select', key: 'csvDelimiterIn', label: 'Input delimiter', val: state.opts.csvDelimiterIn, choices: DELIM_CHOICES });
   }
-  if (['csv', 'tsv', 'md', 'html', 'xml', 'sql', 'ini'].includes(state.from)) {
+  if (['csv', 'tsv', 'md', 'html', 'xml', 'sql', 'ini', 'properties'].includes(state.from)) {
     opts.push({ type: 'checkbox', key: 'coerceTypes', label: 'Coerce types', val: state.opts.coerceTypes });
   }
 

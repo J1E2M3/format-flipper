@@ -1,10 +1,10 @@
 # Architecture
 
-How Format Flipper converts between 11 formats using 22 functions instead of 110.
+How Format Flipper converts between 12 formats using 24 functions instead of 132.
 
 ## The problem
 
-Given N formats, naive conversion requires N × (N−1) conversion functions — every format to every other format. For 11 formats, that's 110 functions to write, test, and maintain.
+Given N formats, naive conversion requires N × (N−1) conversion functions — every format to every other format. For 12 formats, that's 132 functions to write, test, and maintain.
 
 ```
 JSON → YAML         YAML → JSON         TOML → JSON         CSV → JSON    ...
@@ -29,7 +29,7 @@ Step 2:  YAML serializer  → "name: Tooly\n"   (YAML)
 
 The cost of adding a format is now **one parse function and one serialize function**. That's it — the format instantly works with every other format in both directions, because the router just composes the pair with any other format's pair.
 
-For 11 formats, this is 22 functions instead of 110. For 20 formats, it would be 40 functions instead of 380. The complexity is O(N).
+For 12 formats, this is 24 functions instead of 132. For 20 formats, it would be 40 functions instead of 380. The complexity is O(N).
 
 This is the approach [Pandoc](https://pandoc.org) uses for document formats, simplified here for tabular data and simple object hierarchies.
 
@@ -98,7 +98,7 @@ function convert(input, fromFormat, toFormat, opts) {
 
 That's the entire conversion engine. Everything else is in the parse and serialize functions for each format. UI concerns — option rendering, keyboard shortcuts, and the URL-fragment settings sync — live outside the engine section; the engine stays pure `(text, opts)` functions with no DOM or location access. `value` is just a plain JavaScript value — an object, array, string, number, or composition thereof.
 
-## The 11 parsers and serializers
+## The 12 parsers and serializers
 
 Each lives in its own section of `index.html` (not yet extracted into separate files, but clearly delineated). Quick summary of the non-obvious choices:
 
@@ -134,6 +134,14 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - Full-line comments only (`;` or `#` as the first character) — values legitimately contain those characters inline, and INI has no quoting convention that disambiguates
 - Arrays and non-section objects are stored as JSON strings (INI has no list syntax; one-way lossy, matching the CSV convention); `null` becomes an empty value that re-parses as `''`
 - Duplicate keys and malformed lines throw with the line number, mirroring the TOML parser
+
+### .properties
+
+- Java-style: `=`, `:`, or whitespace separators; `#` and `!` full-line comments; backslash line continuations; `\n \t \r \f \uXXXX` escapes in keys and values
+- Keys stay flat — `log4j.appender.stdout` is one key, never split on dots (that's how real .properties files are keyed)
+- The serializer flattens nested objects into dotted keys, which is one-way: parsing keeps the flattened keys flat. Arrays ride along as JSON strings
+- Ambiguous strings don't round-trip (`"007"` re-parses as `7` unless "Coerce types" is off) — the format has no quoting syntax to preserve them
+- Duplicate keys throw with the line number (the tool never silently drops data, unlike Java's last-wins behavior)
 
 ### CSV and TSV
 

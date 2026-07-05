@@ -1,6 +1,6 @@
 # Format Flipper
 
-**Convert between JSON, NDJSON, YAML, TOML, INI, CSV, TSV, XML, Markdown, HTML, and SQL — in your browser, without uploading your file anywhere.**
+**Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown, HTML, and SQL — in your browser, without uploading your file anywhere.**
 
 Live: **[toolymctoolface.com/format](https://toolymctoolface.com/format/)**
 
@@ -10,7 +10,7 @@ This is the source of Format Flipper, one of the tools in the [Tooly McToolface]
 
 ## What it does
 
-Eleven formats. 110 bidirectional conversions. A star-topology architecture that makes adding a new format cost O(1) effort.
+Twelve formats. 132 bidirectional conversions. A star-topology architecture that makes adding a new format cost O(1) effort.
 
 Paste:
 
@@ -22,7 +22,7 @@ Paste:
 }
 ```
 
-Get any of the other ten formats, in place, without a round-trip to any server:
+Get any of the other eleven formats, in place, without a round-trip to any server:
 
 **YAML:**
 ```yaml
@@ -58,6 +58,7 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 | YAML | ✓ | ✓ | js-yaml 1.2, bundled inline (~39 KB) |
 | TOML | ✓ | ✓ | Custom parser, ~3 KB |
 | INI | ✓ | ✓ | Sections + dotted nesting, `;` and `#` comments; arrays stored as JSON strings |
+| .properties | ✓ | ✓ | Java-style: `=`/`:`/space separators, escapes, line continuations; keys stay flat |
 | CSV | ✓ | ✓ | RFC 4180 with quoted-string handling |
 | TSV | ✓ | ✓ | Same as CSV with tab delimiter |
 | XML | ✓ | ✓ | Simple document model, attributes + text nodes |
@@ -65,7 +66,7 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 | HTML | ✓ | ✓ | Extracts `<table>` data; emits clean minimal tables |
 | SQL | ✓ | ✓ | `CREATE TABLE` + `INSERT INTO` for tabular data round-tripping |
 
-11 formats × 10 directions each = 110 bidirectional conversions.
+12 formats × 11 directions each = 132 bidirectional conversions.
 
 ## Options, shortcuts, and share links
 
@@ -93,6 +94,7 @@ The technically interesting part of Format Flipper is that it doesn't implement 
          YAML ──┤         ├── YAML
          TOML ──┤         ├── TOML
           INI ──┤         ├── INI
+  .properties ──┤         ├── .properties
           CSV ──┼──value──┼── CSV
           TSV ──┤         ├── TSV
           XML ──┤         ├── XML

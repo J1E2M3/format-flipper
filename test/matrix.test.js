@@ -7,11 +7,12 @@
 const { test, assert, assertEq } = require('./runner');
 const { PARSERS, SERIALIZERS, convert, DEFAULT_OPTS } = require('./harness');
 
-const ALL_FORMATS = ['json', 'ndjson', 'yaml', 'toml', 'ini', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
+const ALL_FORMATS = ['json', 'ndjson', 'yaml', 'toml', 'ini', 'properties', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
 
 // Formats that can faithfully hold an array of flat records.
-// INI is excluded from both matrices: it cannot represent an array of
-// records or an array of tables — its own tests cover round-trips.
+// INI and .properties are excluded from both matrices: neither can
+// represent an array of records or an array of tables (and .properties
+// keeps keys flat) — their own tests cover round-trips.
 const TABULAR = ['json', 'ndjson', 'yaml', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
 
 const RECORDS = [
@@ -19,7 +20,7 @@ const RECORDS = [
   { id: 2, name: 'Grace Hopper', active: false, score: 8.75 },
 ];
 
-test('registry: all 11 formats have a parser and a serializer', () => {
+test('registry: all 12 formats have a parser and a serializer', () => {
   assertEq(Object.keys(PARSERS).sort(), [...ALL_FORMATS].sort());
   assertEq(Object.keys(SERIALIZERS).sort(), [...ALL_FORMATS].sort());
 });
