@@ -341,6 +341,7 @@
     text-transform: uppercase; letter-spacing: 0.05em;
   }
   .opt-check input { width: 14px; height: 14px; accent-color: var(--accent); }
+  .opt-select { min-width: 120px; cursor: pointer; }
 
   /* ---- Samples row ---- */
   .samples-row {
@@ -795,7 +796,10 @@ function parseDelimited(text, delimiter, opts) {
   return records;
 }
 
-function parseCsv(text, opts) { return parseDelimited(text, ',', opts); }
+const CSV_DELIMITERS = { comma: ',', semicolon: ';', pipe: '|', tab: '\t' };
+function csvDelimiter(name) { return CSV_DELIMITERS[name] || ','; }
+
+function parseCsv(text, opts) { return parseDelimited(text, csvDelimiter(opts && opts.csvDelimiterIn), opts); }
 function parseTsv(text, opts) { return parseDelimited(text, '\t', opts); }
 
 function parseXml(text, opts) {
@@ -1067,7 +1071,7 @@ function serializeDelimited(records, delimiter) {
   return lines.join('\n');
 }
 
-function serializeCsv(data) { return serializeDelimited(data, ','); }
+function serializeCsv(data, opts) { return serializeDelimited(data, csvDelimiter(opts && opts.csvDelimiterOut)); }
 function serializeTsv(data) { return serializeDelimited(data, '\t'); }
 
 function serializeXml(data, opts) {
@@ -1691,8 +1695,17 @@ const state = {
     xmlItem: 'row',
     sqlTable: 'data',
     coerceTypes: true,
+    csvDelimiterIn: 'comma',
+    csvDelimiterOut: 'comma',
   },
 };
+
+const DELIM_CHOICES = [
+  { v: 'comma', label: 'Comma (,)' },
+  { v: 'semicolon', label: 'Semicolon (;)' },
+  { v: 'pipe', label: 'Pipe (|)' },
+  { v: 'tab', label: 'Tab' },
+];
 
 function convert() {
   const src = $('#sourceInput').value;
@@ -1750,8 +1763,14 @@ function renderOptions() {
   if (state.to === 'sql') {
     opts.push({ type: 'text', key: 'sqlTable', label: 'Table name', val: state.opts.sqlTable });
   }
+  if (state.to === 'csv') {
+    opts.push({ type: 'select', key: 'csvDelimiterOut', label: 'Output delimiter', val: state.opts.csvDelimiterOut, choices: DELIM_CHOICES });
+  }
 
   // Input-side options
+  if (state.from === 'csv') {
+    opts.push({ type: 'select', key: 'csvDelimiterIn', label: 'Input delimiter', val: state.opts.csvDelimiterIn, choices: DELIM_CHOICES });
+  }
   if (['csv', 'tsv', 'md', 'html', 'xml', 'sql', 'ini'].includes(state.from)) {
     opts.push({ type: 'checkbox', key: 'coerceTypes', label: 'Coerce types', val: state.opts.coerceTypes });
   }
@@ -1778,6 +1797,29 @@ function renderOptions() {
       checkLab.appendChild(checkInp);
       checkLab.appendChild(document.createTextNode(o.label));
       group.appendChild(checkLab);
+      body.appendChild(group);
+      continue;
+    }
+    if (o.type === 'select') {
+      const selLab = document.createElement('label');
+      selLab.textContent = o.label;
+      selLab.setAttribute('for', 'opt-' + o.key);
+      group.appendChild(selLab);
+      const sel = document.createElement('select');
+      sel.id = 'opt-' + o.key;
+      sel.className = 'opt-input opt-select';
+      for (const c of o.choices) {
+        const optEl = document.createElement('option');
+        optEl.value = c.v;
+        optEl.textContent = c.label;
+        sel.appendChild(optEl);
+      }
+      sel.value = o.val;
+      sel.addEventListener('change', () => {
+        state.opts[o.key] = sel.value;
+        convert();
+      });
+      group.appendChild(sel);
       body.appendChild(group);
       continue;
     }

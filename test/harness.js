@@ -51,6 +51,8 @@ const DEFAULT_OPTS = {
   xmlItem: 'row',
   sqlTable: 'data',
   coerceTypes: true,
+  csvDelimiterIn: 'comma',
+  csvDelimiterOut: 'comma',
 };
 
 // The router from ARCHITECTURE.md: parse in the source format, serialize

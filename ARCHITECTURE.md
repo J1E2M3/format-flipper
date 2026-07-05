@@ -142,6 +142,7 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - Handles quoted fields with embedded commas and newlines
 - First row is treated as header on parse
 - Cell text is type-coerced by default (`"true"` → `true`, `"42"` → `42`); the input-side "Coerce types" toggle turns this off for all untyped tabular formats
+- CSV's delimiter is selectable per side (comma, semicolon, pipe, or tab — `csvDelimiterIn` for parsing, `csvDelimiterOut` for output), chosen explicitly rather than auto-detected so parsing stays deterministic. TSV gets no delimiter option: tab-separated *is* the format, and CSV's Tab choice covers that shape
 - On serialize, arrays of objects become rows; everything else stringifies the top-level
 
 ### XML

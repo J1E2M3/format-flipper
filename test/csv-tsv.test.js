@@ -85,6 +85,34 @@ test('csv/tsv: coerceTypes:false keeps every cell a verbatim string', () => {
   assertEq(PARSERS.tsv('a\tb\n1\tfalse', { coerceTypes: false }), [{ a: '1', b: 'false' }]);
 });
 
+test('csv: parses semicolon-delimited input via csvDelimiterIn', () => {
+  assertEq(PARSERS.csv('a;b\n1;x', { csvDelimiterIn: 'semicolon' }), [{ a: 1, b: 'x' }]);
+});
+
+test('csv: serializes with pipe delimiter and quotes fields containing it', () => {
+  assertEq(SERIALIZERS.csv([{ a: 1, b: 'x|y' }], { csvDelimiterOut: 'pipe' }), 'a|b\n1|"x|y"');
+});
+
+test('csv: unknown delimiter token falls back to comma', () => {
+  assertEq(SERIALIZERS.csv([{ a: 1, b: 2 }], { csvDelimiterOut: 'nonsense' }), 'a,b\n1,2');
+  assertEq(PARSERS.csv('a,b\n1,2', { csvDelimiterIn: 'nonsense' }), [{ a: 1, b: 2 }]);
+});
+
+test('csv: defaults unchanged when opts omitted', () => {
+  assertEq(SERIALIZERS.csv([{ a: 1, b: 2 }]), 'a,b\n1,2');
+  assertEq(PARSERS.csv('a,b\n1,2'), [{ a: 1, b: 2 }]);
+});
+
+test('tsv: ignores csv delimiter options', () => {
+  assertEq(SERIALIZERS.tsv([{ a: 1, b: 2 }], { csvDelimiterOut: 'pipe' }), 'a\tb\n1\t2');
+  assertEq(PARSERS.tsv('a\tb\n1\t2', { csvDelimiterIn: 'pipe' }), [{ a: 1, b: 2 }]);
+});
+
+test('csv: round-trips semicolon csv through convert()', () => {
+  const out = convert('a;b\n1;2', 'csv', 'csv', { csvDelimiterIn: 'semicolon', csvDelimiterOut: 'semicolon' });
+  assertEq(out, 'a;b\n1;2');
+});
+
 test('csv → json and json → csv cross-format conversions', () => {
   const json = convert('id,name\n1,Ada', 'csv', 'json');
   assertEq(PARSERS.json(json), [{ id: 1, name: 'Ada' }]);
