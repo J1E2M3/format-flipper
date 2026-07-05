@@ -661,7 +661,62 @@ const $$ = s => document.querySelectorAll(s);
 // ============================================================
 
 function parseJson(text) {
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch (strictErr) {
+    // Retry as JSONC: strip comments and trailing commas, then parse
+    // strictly. If it still fails, surface the original strict error.
+    try {
+      return JSON.parse(stripJsonc(text));
+    } catch (e) {
+      throw strictErr;
+    }
+  }
+}
+
+function stripJsonc(text) {
+  let out = '';
+  let i = 0;
+  let inStr = false;
+  const skipComment = j => {
+    if (text[j] === '/' && text[j + 1] === '/') {
+      while (j < text.length && text[j] !== '\n') j++;
+      return j;
+    }
+    if (text[j] === '/' && text[j + 1] === '*') {
+      j += 2;
+      while (j < text.length && !(text[j] === '*' && text[j + 1] === '/')) j++;
+      return j + 2;
+    }
+    return j;
+  };
+  while (i < text.length) {
+    const c = text[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\' && i + 1 < text.length) { out += text[i + 1]; i += 2; continue; }
+      if (c === '"') inStr = false;
+      i++;
+      continue;
+    }
+    if (c === '"') { inStr = true; out += c; i++; continue; }
+    const skipped = skipComment(i);
+    if (skipped !== i) { i = skipped; continue; }
+    if (c === ',') {
+      // Trailing comma: drop it if the next meaningful char closes a container
+      let j = i + 1;
+      while (j < text.length) {
+        if (/\s/.test(text[j])) { j++; continue; }
+        const s = skipComment(j);
+        if (s !== j) { j = s; continue; }
+        break;
+      }
+      if (text[j] === '}' || text[j] === ']') { i++; continue; }
+    }
+    out += c;
+    i++;
+  }
+  return out;
 }
 
 function parseYaml(text) {
@@ -765,7 +820,15 @@ function parseMarkdownTable(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
   const parseCells = line => {
-    const raw = line.split('|');
+    // Split on pipes, but keep backslash-escaped pipes inside cells
+    const raw = [];
+    let cell = '';
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '\\' && line[i + 1] === '|') { cell += '\\|'; i++; continue; }
+      if (line[i] === '|') { raw.push(cell); cell = ''; continue; }
+      cell += line[i];
+    }
+    raw.push(cell);
     const slice = raw.slice(
       raw[0].trim() === '' ? 1 : 0,
       raw[raw.length - 1].trim() === '' ? -1 : raw.length
@@ -1020,7 +1083,27 @@ function serializeSqlInsert(records, opts) {
     if (typeof v === 'object') v = JSON.stringify(v);
     return "'" + String(v).replace(/'/g, "''") + "'";
   };
+  const colType = k => {
+    let type = null;
+    for (const r of records) {
+      const v = r[k];
+      if (v === null || v === undefined) continue;
+      let t;
+      if (typeof v === 'number') t = Number.isInteger(v) ? 'INTEGER' : 'REAL';
+      else if (typeof v === 'boolean') t = 'BOOLEAN';
+      else t = 'TEXT';
+      if (type === null) type = t;
+      else if (type !== t) type = (type + t === 'INTEGERREAL' || type + t === 'REALINTEGER') ? 'REAL' : 'TEXT';
+    }
+    return type || 'TEXT';
+  };
   const lines = [];
+  lines.push('CREATE TABLE `' + tableName + '` (');
+  keys.forEach((k, i) => {
+    lines.push('  `' + k + '` ' + colType(k) + (i === keys.length - 1 ? '' : ','));
+  });
+  lines.push(');');
+  lines.push('');
   lines.push('INSERT INTO `' + tableName + '` (' + keys.map(k => '`' + k + '`').join(', ') + ') VALUES');
   for (let i = 0; i < records.length; i++) {
     const vals = keys.map(k => fmt(records[i][k])).join(', ');
