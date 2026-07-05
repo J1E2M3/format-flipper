@@ -96,6 +96,31 @@ test('sql: coerceTypes:false leaves bare tokens as strings but NULL and quotes s
   ]);
 });
 
+test('sql: ansi quoting emits double-quoted identifiers', () => {
+  const out = SERIALIZERS.sql([{ id: 1, name: 'Ada' }], { sqlTable: 'people', sqlQuote: 'ansi' });
+  assert(out.includes('CREATE TABLE "people" ('), 'expected ANSI CREATE TABLE, got ' + JSON.stringify(out));
+  assert(out.includes('"id" INTEGER'), 'expected ANSI column def');
+  assert(out.includes('INSERT INTO "people" ("id", "name") VALUES'), 'expected ANSI INSERT');
+});
+
+test('sql: bracket quoting emits square-bracket identifiers', () => {
+  const out = SERIALIZERS.sql([{ id: 1 }], { sqlTable: 'people', sqlQuote: 'bracket' });
+  assert(out.includes('CREATE TABLE [people] ('), 'expected bracket CREATE TABLE, got ' + JSON.stringify(out));
+  assert(out.includes('INSERT INTO [people] ([id]) VALUES'), 'expected bracket INSERT');
+});
+
+test('sql: defaults to backticks when sqlQuote omitted', () => {
+  const out = SERIALIZERS.sql([{ id: 1 }], { sqlTable: 'people' });
+  assert(out.includes('CREATE TABLE `people` ('), 'expected backtick default, got ' + JSON.stringify(out));
+});
+
+test('sql: doubles quote characters inside column identifiers', () => {
+  const ansi = SERIALIZERS.sql([{ 'we"ird': 1 }], { sqlQuote: 'ansi' });
+  assert(ansi.includes('"we""ird"'), 'expected doubled quote, got ' + JSON.stringify(ansi));
+  const tick = SERIALIZERS.sql([{ 'ti`ck': 1 }], {});
+  assert(tick.includes('`ti``ck`'), 'expected doubled backtick, got ' + JSON.stringify(tick));
+});
+
 test('sql → csv and json → sql cross-format conversions', () => {
   const csv = convert("INSERT INTO t (a, b) VALUES (1, 'x');", 'sql', 'csv');
   assertEq(csv, 'a,b\n1,x');

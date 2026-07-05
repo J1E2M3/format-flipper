@@ -166,6 +166,7 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 ### SQL
 
 - Recognizes `CREATE TABLE` + `INSERT INTO` patterns for tabular round-tripping
+- Identifier quoting is selectable via `sqlQuote`: MySQL backticks (default), ANSI double quotes, or SQL Server brackets; quote characters inside identifiers are escaped by doubling
 - Serializer emits the same two statements for any array-of-objects input
 - Not a general SQL parser
 

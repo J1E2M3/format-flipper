@@ -1186,10 +1186,17 @@ function serializeHtmlTable(records) {
   return lines.join('\n');
 }
 
+function sqlIdentQuoter(style) {
+  if (style === 'ansi') return id => '"' + String(id).replace(/"/g, '""') + '"';
+  if (style === 'bracket') return id => '[' + String(id).replace(/]/g, ']]') + ']';
+  return id => '`' + String(id).replace(/`/g, '``') + '`';
+}
+
 function serializeSqlInsert(records, opts) {
   if (!Array.isArray(records)) throw new Error('Expected an array for SQL INSERT');
   if (records.length === 0) return '';
   const tableName = (opts.sqlTable || 'data').replace(/[^a-zA-Z0-9_]/g, '');
+  const q = sqlIdentQuoter(opts.sqlQuote);
   const keys = [...new Set(records.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
   if (keys.length === 0) throw new Error('Records have no fields');
   const fmt = v => {
@@ -1214,13 +1221,13 @@ function serializeSqlInsert(records, opts) {
     return type || 'TEXT';
   };
   const lines = [];
-  lines.push('CREATE TABLE `' + tableName + '` (');
+  lines.push('CREATE TABLE ' + q(tableName) + ' (');
   keys.forEach((k, i) => {
-    lines.push('  `' + k + '` ' + colType(k) + (i === keys.length - 1 ? '' : ','));
+    lines.push('  ' + q(k) + ' ' + colType(k) + (i === keys.length - 1 ? '' : ','));
   });
   lines.push(');');
   lines.push('');
-  lines.push('INSERT INTO `' + tableName + '` (' + keys.map(k => '`' + k + '`').join(', ') + ') VALUES');
+  lines.push('INSERT INTO ' + q(tableName) + ' (' + keys.map(q).join(', ') + ') VALUES');
   for (let i = 0; i < records.length; i++) {
     const vals = keys.map(k => fmt(records[i][k])).join(', ');
     lines.push('  (' + vals + ')' + (i === records.length - 1 ? ';' : ','));
@@ -1694,6 +1701,7 @@ const state = {
     xmlRoot: 'rows',
     xmlItem: 'row',
     sqlTable: 'data',
+    sqlQuote: 'backtick',
     coerceTypes: true,
     csvDelimiterIn: 'comma',
     csvDelimiterOut: 'comma',
@@ -1762,6 +1770,11 @@ function renderOptions() {
   }
   if (state.to === 'sql') {
     opts.push({ type: 'text', key: 'sqlTable', label: 'Table name', val: state.opts.sqlTable });
+    opts.push({ type: 'select', key: 'sqlQuote', label: 'Identifier quotes', val: state.opts.sqlQuote, choices: [
+      { v: 'backtick', label: 'MySQL  `id`' },
+      { v: 'ansi', label: 'ANSI  "id"' },
+      { v: 'bracket', label: 'SQL Server  [id]' },
+    ] });
   }
   if (state.to === 'csv') {
     opts.push({ type: 'select', key: 'csvDelimiterOut', label: 'Output delimiter', val: state.opts.csvDelimiterOut, choices: DELIM_CHOICES });

@@ -50,6 +50,7 @@ const DEFAULT_OPTS = {
   xmlRoot: 'rows',
   xmlItem: 'row',
   sqlTable: 'data',
+  sqlQuote: 'backtick',
   coerceTypes: true,
   csvDelimiterIn: 'comma',
   csvDelimiterOut: 'comma',
