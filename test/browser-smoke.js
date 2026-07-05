@@ -104,6 +104,29 @@ function loadPlaywright() {
     ['[a]', 'b = 1']
   );
 
+  // Sample chips for the new formats load and convert
+  await page.selectOption('#toSelect', 'json');
+  await page.click('.sample-chip[data-sample="logs"]');
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('#outputArea').value.includes('"msg": "upstream timeout"'),
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('ndjson sample chip: expected log records in JSON output');
+  }
+  await page.click('.sample-chip[data-sample="settings"]');
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('#outputArea').value.includes('"width": 1280'),
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('ini sample chip: expected settings in JSON output');
+  }
+
   // Error path: malformed JSON must surface in #sourceError, not crash
   await page.selectOption('#fromSelect', 'json');
   await page.selectOption('#toSelect', 'yaml');
@@ -131,7 +154,7 @@ function loadPlaywright() {
   for (const f of failures) console.error('FAIL  ' + f);
   for (const e of pageErrors) console.error('PAGEERROR  ' + e);
   if (failures.length || pageErrors.length) process.exit(1);
-  console.log('SMOKE OK (7 cases)');
+  console.log('SMOKE OK (8 cases)');
 })().catch(err => {
   console.error(err);
   process.exit(1);

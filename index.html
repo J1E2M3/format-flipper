@@ -575,6 +575,8 @@
     <button class="sample-chip" data-sample="products">Products catalog</button>
     <button class="sample-chip" data-sample="config">Config</button>
     <button class="sample-chip" data-sample="tasks">Tasks list</button>
+    <button class="sample-chip" data-sample="logs">Server logs</button>
+    <button class="sample-chip" data-sample="settings">App settings</button>
   </div>
 
   <section id="faq" class="education">
@@ -1894,6 +1896,27 @@ features:
 2,Write release notes,false,med,2026-04-23
 3,Update changelog,true,low,2026-04-21
 4,Send announcement,false,med,2026-04-25`
+  },
+  logs: {
+    ndjson: `{"ts":"2026-07-04T12:00:01Z","level":"info","msg":"server started","port":8080}
+{"ts":"2026-07-04T12:00:07Z","level":"warn","msg":"slow query","ms":412}
+{"ts":"2026-07-04T12:01:13Z","level":"error","msg":"upstream timeout","service":"billing"}
+{"ts":"2026-07-04T12:01:14Z","level":"info","msg":"retry succeeded","service":"billing"}`
+  },
+  settings: {
+    ini: `; app settings
+[app]
+name = Flipper
+version = "1.2"
+
+[window]
+width = 1280
+height = 800
+fullscreen = false
+
+[paths]
+data = ~/flipper/data
+cache = ~/flipper/cache`
   },
 };
 
