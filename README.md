@@ -59,8 +59,8 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 | CSV | ✓ | ✓ | RFC 4180 with quoted-string handling |
 | TSV | ✓ | ✓ | Same as CSV with tab delimiter |
 | XML | ✓ | ✓ | Simple document model, attributes + text nodes |
-| Markdown | ✓ | ✓ | Tables, lists, headings, code blocks, links |
-| HTML | ✓ | ✓ | Clean subset — extracts tables, lists, document structure |
+| Markdown | ✓ | ✓ | GFM pipe tables — escaped pipes, `<br>` line breaks |
+| HTML | ✓ | ✓ | Extracts `<table>` data; emits clean minimal tables |
 | SQL | ✓ | ✓ | `CREATE TABLE` + `INSERT INTO` for tabular data round-tripping |
 
 9 formats × 8 directions each = 72 bidirectional conversions.

@@ -661,7 +661,62 @@ const $$ = s => document.querySelectorAll(s);
 // ============================================================
 
 function parseJson(text) {
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch (strictErr) {
+    // Retry as JSONC: strip comments and trailing commas, then parse
+    // strictly. If it still fails, surface the original strict error.
+    try {
+      return JSON.parse(stripJsonc(text));
+    } catch (e) {
+      throw strictErr;
+    }
+  }
+}
+
+function stripJsonc(text) {
+  let out = '';
+  let i = 0;
+  let inStr = false;
+  const skipComment = j => {
+    if (text[j] === '/' && text[j + 1] === '/') {
+      while (j < text.length && text[j] !== '\n') j++;
+      return j;
+    }
+    if (text[j] === '/' && text[j + 1] === '*') {
+      j += 2;
+      while (j < text.length && !(text[j] === '*' && text[j + 1] === '/')) j++;
+      return j + 2;
+    }
+    return j;
+  };
+  while (i < text.length) {
+    const c = text[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\' && i + 1 < text.length) { out += text[i + 1]; i += 2; continue; }
+      if (c === '"') inStr = false;
+      i++;
+      continue;
+    }
+    if (c === '"') { inStr = true; out += c; i++; continue; }
+    const skipped = skipComment(i);
+    if (skipped !== i) { i = skipped; continue; }
+    if (c === ',') {
+      // Trailing comma: drop it if the next meaningful char closes a container
+      let j = i + 1;
+      while (j < text.length) {
+        if (/\s/.test(text[j])) { j++; continue; }
+        const s = skipComment(j);
+        if (s !== j) { j = s; continue; }
+        break;
+      }
+      if (text[j] === '}' || text[j] === ']') { i++; continue; }
+    }
+    out += c;
+    i++;
+  }
+  return out;
 }
 
 function parseYaml(text) {
@@ -727,28 +782,41 @@ function parseXml(text) {
   const parseError = doc.querySelector('parsererror');
   if (parseError) throw new Error('Invalid XML: ' + parseError.textContent.slice(0, 100));
   const root = doc.documentElement;
-  // If root has repeated children with same tag, treat as array
+  // If an attribute-less root has repeated children with the same tag,
+  // treat it as an array of records
   const children = [...root.children];
-  if (children.length > 0 && children.every(c => c.tagName === children[0].tagName)) {
+  const rootAttrs = root.attributes ? root.attributes.length : 0;
+  if (children.length > 0 && rootAttrs === 0 && children.every(c => c.tagName === children[0].tagName)) {
     // Array of records
     return children.map(c => xmlNodeToObject(c));
   }
   return xmlNodeToObject(root);
 }
 
+function coerceXmlText(text) {
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  if (text === 'null') return null;
+  if (text === '') return '';
+  if (/^-?\d+$/.test(text)) return parseInt(text);
+  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
+  return text;
+}
+
 function xmlNodeToObject(node) {
   const children = [...node.children];
+  const obj = {};
+  // Attributes become @-prefixed keys (XSLT-style convention)
+  const attrs = node.attributes || [];
+  for (let i = 0; i < attrs.length; i++) {
+    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value);
+  }
   if (children.length === 0) {
     const text = node.textContent.trim();
-    // Type coercion
-    if (text === 'true') return true;
-    if (text === 'false') return false;
-    if (text === 'null' || text === '') return text === 'null' ? null : '';
-    if (/^-?\d+$/.test(text)) return parseInt(text);
-    if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
-    return text;
+    if (Object.keys(obj).length === 0) return coerceXmlText(text);
+    if (text !== '') obj['#text'] = coerceXmlText(text);
+    return obj;
   }
-  const obj = {};
   for (const child of children) {
     const val = xmlNodeToObject(child);
     if (child.tagName in obj) {
@@ -765,7 +833,15 @@ function parseMarkdownTable(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
   const parseCells = line => {
-    const raw = line.split('|');
+    // Split on pipes, but keep backslash-escaped pipes inside cells
+    const raw = [];
+    let cell = '';
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '\\' && line[i + 1] === '|') { cell += '\\|'; i++; continue; }
+      if (line[i] === '|') { raw.push(cell); cell = ''; continue; }
+      cell += line[i];
+    }
+    raw.push(cell);
     const slice = raw.slice(
       raw[0].trim() === '' ? 1 : 0,
       raw[raw.length - 1].trim() === '' ? -1 : raw.length
@@ -953,8 +1029,28 @@ function objectToXml(obj, tag, indent, depth) {
   if (Array.isArray(obj)) {
     return obj.map(item => objectToXml(item, tag, indent, depth)).join('\n');
   }
-  const lines = [ind + '<' + tag + '>'];
+  // @-prefixed keys become attributes, #text becomes element text
+  let attrStr = '';
+  let text;
+  const childEntries = [];
   for (const [k, v] of Object.entries(obj)) {
+    if (k[0] === '@' && k.length > 1 && (v === null || typeof v !== 'object')) {
+      attrStr += ' ' + k.slice(1) + '="' + escapeXml(v === null ? '' : String(v)) + '"';
+    } else if (k === '#text' && (v === null || typeof v !== 'object')) {
+      text = v;
+    } else {
+      childEntries.push([k, v]);
+    }
+  }
+  if (childEntries.length === 0) {
+    if (text === null || text === undefined) return ind + '<' + tag + attrStr + '/>';
+    return ind + '<' + tag + attrStr + '>' + escapeXml(String(text)) + '</' + tag + '>';
+  }
+  const lines = [ind + '<' + tag + attrStr + '>'];
+  if (text !== null && text !== undefined) {
+    lines.push(' '.repeat(indent * (depth + 1)) + escapeXml(String(text)));
+  }
+  for (const [k, v] of childEntries) {
     lines.push(objectToXml(v, k, indent, depth + 1));
   }
   lines.push(ind + '</' + tag + '>');
@@ -1020,7 +1116,27 @@ function serializeSqlInsert(records, opts) {
     if (typeof v === 'object') v = JSON.stringify(v);
     return "'" + String(v).replace(/'/g, "''") + "'";
   };
+  const colType = k => {
+    let type = null;
+    for (const r of records) {
+      const v = r[k];
+      if (v === null || v === undefined) continue;
+      let t;
+      if (typeof v === 'number') t = Number.isInteger(v) ? 'INTEGER' : 'REAL';
+      else if (typeof v === 'boolean') t = 'BOOLEAN';
+      else t = 'TEXT';
+      if (type === null) type = t;
+      else if (type !== t) type = (type + t === 'INTEGERREAL' || type + t === 'REALINTEGER') ? 'REAL' : 'TEXT';
+    }
+    return type || 'TEXT';
+  };
   const lines = [];
+  lines.push('CREATE TABLE `' + tableName + '` (');
+  keys.forEach((k, i) => {
+    lines.push('  `' + k + '` ' + colType(k) + (i === keys.length - 1 ? '' : ','));
+  });
+  lines.push(');');
+  lines.push('');
   lines.push('INSERT INTO `' + tableName + '` (' + keys.map(k => '`' + k + '`').join(', ') + ') VALUES');
   for (let i = 0; i < records.length; i++) {
     const vals = keys.map(k => fmt(records[i][k])).join(', ');

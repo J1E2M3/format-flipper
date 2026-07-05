@@ -130,20 +130,19 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 ### XML
 
 - Simple DOM-level model: elements, attributes, text nodes
-- Attributes become object keys with `@`-prefix (XSLT-style convention)
+- Attributes become object keys with `@`-prefix (XSLT-style convention); the text content of an attribute-bearing element lands in a `#text` key
 - No DTD or namespace support — just the subset used for data exchange
 
 ### Markdown
 
-- Parses tables, lists, headings, code blocks, links
+- Parses GFM pipe tables (escaped pipes, `<br>` line breaks in cells)
 - Serializes back to GFM-style syntax
 - Not trying to be a full Markdown parser (that's a different project)
 
 ### HTML
 
-- Extracts tables, lists, document structure
-- Strips style and script tags
-- Serializes clean minimal HTML without inline styles
+- Extracts the first `<table>` element's rows; markup outside it is ignored
+- Serializes clean minimal HTML tables without inline styles
 
 ### SQL
 
