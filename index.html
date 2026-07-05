@@ -723,7 +723,18 @@ function parseYaml(text) {
   return window.jsyaml.load(text);
 }
 
-function parseDelimited(text, delimiter) {
+// Shared string → number/boolean sniffing for the tabular parsers.
+// Skipped entirely when opts.coerceTypes === false (input-side UI toggle).
+function coerceScalar(text, opts) {
+  if (opts && opts.coerceTypes === false) return text;
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  if (/^-?\d+$/.test(text)) return parseInt(text);
+  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
+  return text;
+}
+
+function parseDelimited(text, delimiter, opts) {
   const rows = [];
   let current = [];
   let field = '';
@@ -759,24 +770,17 @@ function parseDelimited(text, delimiter) {
   for (let r = 1; r < rows.length; r++) {
     const obj = {};
     for (let c = 0; c < header.length; c++) {
-      let val = rows[r][c] ?? '';
-      // Coerce types for convenience
-      if (val === 'true') val = true;
-      else if (val === 'false') val = false;
-      else if (val === '') val = '';
-      else if (/^-?\d+$/.test(val)) val = parseInt(val);
-      else if (/^-?\d*\.\d+$/.test(val)) val = parseFloat(val);
-      obj[header[c]] = val;
+      obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
     }
     records.push(obj);
   }
   return records;
 }
 
-function parseCsv(text) { return parseDelimited(text, ','); }
-function parseTsv(text) { return parseDelimited(text, '\t'); }
+function parseCsv(text, opts) { return parseDelimited(text, ',', opts); }
+function parseTsv(text, opts) { return parseDelimited(text, '\t', opts); }
 
-function parseXml(text) {
+function parseXml(text, opts) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, 'text/xml');
   const parseError = doc.querySelector('parsererror');
@@ -788,37 +792,33 @@ function parseXml(text) {
   const rootAttrs = root.attributes ? root.attributes.length : 0;
   if (children.length > 0 && rootAttrs === 0 && children.every(c => c.tagName === children[0].tagName)) {
     // Array of records
-    return children.map(c => xmlNodeToObject(c));
+    return children.map(c => xmlNodeToObject(c, opts));
   }
-  return xmlNodeToObject(root);
+  return xmlNodeToObject(root, opts);
 }
 
-function coerceXmlText(text) {
-  if (text === 'true') return true;
-  if (text === 'false') return false;
+function coerceXmlText(text, opts) {
+  if (opts && opts.coerceTypes === false) return text;
   if (text === 'null') return null;
-  if (text === '') return '';
-  if (/^-?\d+$/.test(text)) return parseInt(text);
-  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
-  return text;
+  return coerceScalar(text, opts);
 }
 
-function xmlNodeToObject(node) {
+function xmlNodeToObject(node, opts) {
   const children = [...node.children];
   const obj = {};
   // Attributes become @-prefixed keys (XSLT-style convention)
   const attrs = node.attributes || [];
   for (let i = 0; i < attrs.length; i++) {
-    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value);
+    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value, opts);
   }
   if (children.length === 0) {
     const text = node.textContent.trim();
-    if (Object.keys(obj).length === 0) return coerceXmlText(text);
-    if (text !== '') obj['#text'] = coerceXmlText(text);
+    if (Object.keys(obj).length === 0) return coerceXmlText(text, opts);
+    if (text !== '') obj['#text'] = coerceXmlText(text, opts);
     return obj;
   }
   for (const child of children) {
-    const val = xmlNodeToObject(child);
+    const val = xmlNodeToObject(child, opts);
     if (child.tagName in obj) {
       if (!Array.isArray(obj[child.tagName])) obj[child.tagName] = [obj[child.tagName]];
       obj[child.tagName].push(val);
@@ -829,7 +829,7 @@ function xmlNodeToObject(node) {
   return obj;
 }
 
-function parseMarkdownTable(text) {
+function parseMarkdownTable(text, opts) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
   const parseCells = line => {
@@ -855,19 +855,14 @@ function parseMarkdownTable(text) {
     const cells = parseCells(lines[i]);
     const obj = {};
     for (let c = 0; c < header.length; c++) {
-      let v = cells[c] ?? '';
-      if (v === 'true') v = true;
-      else if (v === 'false') v = false;
-      else if (/^-?\d+$/.test(v)) v = parseInt(v);
-      else if (/^-?\d*\.\d+$/.test(v)) v = parseFloat(v);
-      obj[header[c]] = v;
+      obj[header[c]] = coerceScalar(cells[c] ?? '', opts);
     }
     records.push(obj);
   }
   return records;
 }
 
-function parseHtmlTable(text) {
+function parseHtmlTable(text, opts) {
   const parser = new DOMParser();
   const doc = parser.parseFromString('<!DOCTYPE html><html><body>' + text + '</body></html>', 'text/html');
   const table = doc.querySelector('table');
@@ -881,19 +876,14 @@ function parseHtmlTable(text) {
   for (let r = 1; r < rows.length; r++) {
     const obj = {};
     for (let c = 0; c < header.length; c++) {
-      let v = rows[r][c] ?? '';
-      if (v === 'true') v = true;
-      else if (v === 'false') v = false;
-      else if (/^-?\d+$/.test(v)) v = parseInt(v);
-      else if (/^-?\d*\.\d+$/.test(v)) v = parseFloat(v);
-      obj[header[c]] = v;
+      obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
     }
     records.push(obj);
   }
   return records;
 }
 
-function parseSqlInsert(text) {
+function parseSqlInsert(text, opts) {
   const m = text.match(/INSERT\s+INTO\s+[`"']?(\w+)[`"']?\s*\(([^)]+)\)\s*VALUES\s*([\s\S]+)$/i);
   if (!m) throw new Error('Could not parse — expected: INSERT INTO table (cols) VALUES (vals), ...;');
   const cols = m[2].split(',').map(s => s.trim().replace(/^[`"']|[`"']$/g, ''));
@@ -917,7 +907,7 @@ function parseSqlInsert(text) {
   }
   const records = [];
   for (const t of tuples) {
-    const vals = splitSqlValues(t);
+    const vals = splitSqlValues(t, opts);
     const obj = {};
     for (let c = 0; c < cols.length; c++) obj[cols[c]] = vals[c] ?? null;
     records.push(obj);
@@ -925,7 +915,7 @@ function parseSqlInsert(text) {
   return records;
 }
 
-function splitSqlValues(s) {
+function splitSqlValues(s, opts) {
   const out = [];
   let cur = '', inStr = false, strCh = null;
   for (let i = 0; i < s.length; i++) {
@@ -936,22 +926,26 @@ function splitSqlValues(s) {
       cur += c;
     } else {
       if (c === "'" || c === '"') { inStr = true; strCh = c; cur += c; continue; }
-      if (c === ',') { out.push(parseSqlValue(cur.trim())); cur = ''; continue; }
+      if (c === ',') { out.push(parseSqlValue(cur.trim(), opts)); cur = ''; continue; }
       cur += c;
     }
   }
-  if (cur.trim() !== '') out.push(parseSqlValue(cur.trim()));
+  if (cur.trim() !== '') out.push(parseSqlValue(cur.trim(), opts));
   return out;
 }
 
-function parseSqlValue(v) {
+function parseSqlValue(v, opts) {
+  // NULL and quote handling are SQL structure, not type sniffing —
+  // they apply regardless of the coerce-types toggle.
   if (v === 'NULL' || v === 'null') return null;
   if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1).replace(/''/g, "'").replace(/\\'/g, "'");
   if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1).replace(/""/g, '"');
-  if (/^-?\d+$/.test(v)) return parseInt(v);
-  if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
-  if (v === 'true' || v === 'TRUE') return true;
-  if (v === 'false' || v === 'FALSE') return false;
+  if (!opts || opts.coerceTypes !== false) {
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
+    if (v === 'true' || v === 'TRUE') return true;
+    if (v === 'false' || v === 'FALSE') return false;
+  }
   return v;
 }
 
@@ -1483,6 +1477,7 @@ const state = {
     xmlRoot: 'rows',
     xmlItem: 'row',
     sqlTable: 'data',
+    coerceTypes: true,
   },
 };
 
@@ -1500,7 +1495,7 @@ function convert() {
 
   let data;
   try {
-    data = PARSERS[state.from](src);
+    data = PARSERS[state.from](src, state.opts);
   } catch (err) {
     errEl.textContent = 'Parse error: ' + err.message;
     errEl.classList.add('show');
@@ -1543,6 +1538,11 @@ function renderOptions() {
     opts.push({ type: 'text', key: 'sqlTable', label: 'Table name', val: state.opts.sqlTable });
   }
 
+  // Input-side options
+  if (['csv', 'tsv', 'md', 'html', 'xml', 'sql'].includes(state.from)) {
+    opts.push({ type: 'checkbox', key: 'coerceTypes', label: 'Coerce types', val: state.opts.coerceTypes });
+  }
+
   if (opts.length === 0) {
     body.innerHTML = '<span class="options-empty">No options for this conversion</span>';
     return;
@@ -1551,6 +1551,23 @@ function renderOptions() {
   for (const o of opts) {
     const group = document.createElement('div');
     group.className = 'opt-group';
+    if (o.type === 'checkbox') {
+      const checkLab = document.createElement('label');
+      checkLab.className = 'opt-check';
+      const checkInp = document.createElement('input');
+      checkInp.type = 'checkbox';
+      checkInp.id = 'opt-' + o.key;
+      checkInp.checked = o.val;
+      checkInp.addEventListener('change', () => {
+        state.opts[o.key] = checkInp.checked;
+        convert();
+      });
+      checkLab.appendChild(checkInp);
+      checkLab.appendChild(document.createTextNode(o.label));
+      group.appendChild(checkLab);
+      body.appendChild(group);
+      continue;
+    }
     const lab = document.createElement('label');
     lab.textContent = o.label;
     lab.setAttribute('for', 'opt-' + o.key);
@@ -1626,6 +1643,7 @@ $('#sourceInput').addEventListener('input', scheduleConvert);
 $('#fromSelect').addEventListener('change', e => {
   state.from = e.target.value;
   $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+  renderOptions();
   convert();
 });
 
@@ -1712,6 +1730,7 @@ $$('.sample-chip').forEach(chip => {
     $('#fromSelect').value = fmt;
     $('#sourceInput').value = s[fmt];
     $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[fmt];
+    renderOptions();
     convert();
     showToast('Loaded: ' + chip.textContent);
   });

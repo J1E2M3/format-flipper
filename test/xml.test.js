@@ -87,6 +87,15 @@ test('xml: attribute values are escaped and restored', () => {
   assertEq(PARSERS.xml(out), value);
 });
 
+test('xml: coerceTypes:false keeps attributes and text as strings (including "null")', () => {
+  const input = '<user id="007"><gone>null</gone><flag>true</flag></user>';
+  assertEq(PARSERS.xml(input, { coerceTypes: false }), {
+    '@id': '007',
+    gone: 'null',
+    flag: 'true',
+  });
+});
+
 test('xml: invalid markup throws a parse error', () => {
   assertThrows(() => PARSERS.xml('<a><b></a>'), /Invalid XML/);
   assertThrows(() => PARSERS.xml('not xml at all'), /Invalid XML/);

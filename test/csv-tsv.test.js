@@ -78,6 +78,13 @@ test('tsv: quotes fields containing tabs', () => {
   assertEq(PARSERS.tsv(SERIALIZERS.tsv(records)), records);
 });
 
+test('csv/tsv: coerceTypes:false keeps every cell a verbatim string', () => {
+  assertEq(PARSERS.csv('id,active,score\n007,true,9.50', { coerceTypes: false }), [
+    { id: '007', active: 'true', score: '9.50' },
+  ]);
+  assertEq(PARSERS.tsv('a\tb\n1\tfalse', { coerceTypes: false }), [{ a: '1', b: 'false' }]);
+});
+
 test('csv → json and json → csv cross-format conversions', () => {
   const json = convert('id,name\n1,Ada', 'csv', 'json');
   assertEq(PARSERS.json(json), [{ id: 1, name: 'Ada' }]);

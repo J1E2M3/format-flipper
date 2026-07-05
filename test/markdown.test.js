@@ -49,6 +49,11 @@ test('md: round-trips records including special characters', () => {
   assertEq(PARSERS.md(SERIALIZERS.md(records)), records);
 });
 
+test('md: coerceTypes:false keeps cell text verbatim', () => {
+  const input = '| id | ok |\n|---|---|\n| 007 | true |';
+  assertEq(PARSERS.md(input, { coerceTypes: false }), [{ id: '007', ok: 'true' }]);
+});
+
 test('md → json and json → md cross-format conversions', () => {
   const json = convert('| a |\n|---|\n| 1 |', 'md', 'json');
   assertEq(PARSERS.json(json), [{ a: 1 }]);

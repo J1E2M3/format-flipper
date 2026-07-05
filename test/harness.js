@@ -50,6 +50,7 @@ const DEFAULT_OPTS = {
   xmlRoot: 'rows',
   xmlItem: 'row',
   sqlTable: 'data',
+  coerceTypes: true,
 };
 
 // The router from ARCHITECTURE.md: parse in the source format, serialize
@@ -57,8 +58,9 @@ const DEFAULT_OPTS = {
 function convert(input, from, to, opts) {
   if (!PARSERS[from]) throw new Error(`unknown source format: ${from}`);
   if (!SERIALIZERS[to]) throw new Error(`unknown target format: ${to}`);
-  const value = PARSERS[from](input);
-  return SERIALIZERS[to](value, { ...DEFAULT_OPTS, ...opts });
+  const merged = { ...DEFAULT_OPTS, ...opts };
+  const value = PARSERS[from](input, merged);
+  return SERIALIZERS[to](value, merged);
 }
 
 module.exports = { PARSERS, SERIALIZERS, convert, DEFAULT_OPTS };

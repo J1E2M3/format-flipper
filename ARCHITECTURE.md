@@ -89,10 +89,10 @@ See [the JSON vs YAML vs TOML article](https://toolymctoolface.com/blog/json-yam
 The function that composes parse and serialize is simple:
 
 ```javascript
-function convert(input, fromFormat, toFormat) {
+function convert(input, fromFormat, toFormat, opts) {
   if (fromFormat === toFormat) return input;
-  const value = PARSERS[fromFormat](input);
-  return SERIALIZERS[toFormat](value);
+  const value = PARSERS[fromFormat](input, opts);
+  return SERIALIZERS[toFormat](value, opts);
 }
 ```
 
@@ -125,12 +125,14 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - RFC 4180 compliant for CSV
 - Handles quoted fields with embedded commas and newlines
 - First row is treated as header on parse
+- Cell text is type-coerced by default (`"true"` → `true`, `"42"` → `42`); the input-side "Coerce types" toggle turns this off for all untyped tabular formats
 - On serialize, arrays of objects become rows; everything else stringifies the top-level
 
 ### XML
 
 - Simple DOM-level model: elements, attributes, text nodes
 - Attributes become object keys with `@`-prefix (XSLT-style convention); the text content of an attribute-bearing element lands in a `#text` key
+- Text and attribute values are type-coerced by default (including `'null'` → `null`); with "Coerce types" off, every value stays exactly the string that was typed
 - No DTD or namespace support — just the subset used for data exchange
 
 ### Markdown

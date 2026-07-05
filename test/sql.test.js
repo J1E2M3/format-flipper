@@ -89,6 +89,13 @@ test('sql: round-trips records through CREATE TABLE + INSERT', () => {
   assertEq(PARSERS.sql(SERIALIZERS.sql(records, {})), records);
 });
 
+test('sql: coerceTypes:false leaves bare tokens as strings but NULL and quotes still apply', () => {
+  const input = "INSERT INTO t (a, b, c, d) VALUES (007, 'O''Brien', NULL, true);";
+  assertEq(PARSERS.sql(input, { coerceTypes: false }), [
+    { a: '007', b: "O'Brien", c: null, d: 'true' },
+  ]);
+});
+
 test('sql → csv and json → sql cross-format conversions', () => {
   const csv = convert("INSERT INTO t (a, b) VALUES (1, 'x');", 'sql', 'csv');
   assertEq(csv, 'a,b\n1,x');
