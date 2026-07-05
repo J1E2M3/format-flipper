@@ -67,6 +67,14 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 
 11 formats × 10 directions each = 110 bidirectional conversions.
 
+## Options, shortcuts, and share links
+
+- **CSV delimiters**: choose comma, semicolon, pipe, or tab — independently for parsing (`Input delimiter`) and output (`Output delimiter`). TSV has no option; tab-separated *is* the format.
+- **SQL identifier quotes**: MySQL backticks (default), ANSI double quotes, or SQL Server brackets.
+- **Coerce types**: on by default; turn it off to keep every tabular cell exactly the string you typed (`"007"` stays `"007"`).
+- **Keyboard**: `Ctrl/⌘+Enter` converts, `Ctrl/⌘+Shift+S` swaps formats, `Ctrl/⌘+Shift+L` copies a settings link, `Esc` dismisses the toast.
+- **Share links**: the current formats and options sync into the URL fragment (`#from=csv&to=json&…`), and "Copy settings link" puts a shareable URL on your clipboard. **Only settings are encoded — never your data.** Fragments aren't sent to any server.
+
 ## Why it exists
 
 Every "JSON to YAML" website wants to paste an ad into your workflow, upload your file to their server, or make you create an account to remove the 50-item limit. None of these are problems a free browser tool should have.

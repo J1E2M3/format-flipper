@@ -96,7 +96,7 @@ function convert(input, fromFormat, toFormat, opts) {
 }
 ```
 
-That's the entire conversion engine. Everything else is in the parse and serialize functions for each format. `value` is just a plain JavaScript value — an object, array, string, number, or composition thereof.
+That's the entire conversion engine. Everything else is in the parse and serialize functions for each format. UI concerns — option rendering, keyboard shortcuts, and the URL-fragment settings sync — live outside the engine section; the engine stays pure `(text, opts)` functions with no DOM or location access. `value` is just a plain JavaScript value — an object, array, string, number, or composition thereof.
 
 ## The 11 parsers and serializers
 

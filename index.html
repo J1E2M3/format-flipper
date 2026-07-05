@@ -342,6 +342,10 @@
   }
   .opt-check input { width: 14px; height: 14px; accent-color: var(--accent); }
   .opt-select { min-width: 120px; cursor: pointer; }
+  .sample-chip:focus-visible, .icon-btn:focus-visible, .swap-btn:focus-visible,
+  .format-select:focus-visible, .textarea:focus-visible, .opt-input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
 
   /* ---- Samples row ---- */
   .samples-row {
@@ -495,7 +499,7 @@
   <div class="format-row">
     <div class="format-picker">
       <span class="format-label">From</span>
-      <select class="format-select" id="fromSelect">
+      <select class="format-select" id="fromSelect" aria-label="Convert from format">
         <option value="json">JSON</option>
         <option value="ndjson">NDJSON</option>
         <option value="yaml">YAML</option>
@@ -514,7 +518,7 @@
     </button>
     <div class="format-picker">
       <span class="format-label">To</span>
-      <select class="format-select" id="toSelect">
+      <select class="format-select" id="toSelect" aria-label="Convert to format">
         <option value="json">JSON</option>
         <option value="ndjson">NDJSON</option>
         <option value="yaml">YAML</option>
@@ -543,8 +547,8 @@
           </button>
         </div>
       </div>
-      <textarea class="textarea" id="sourceInput" placeholder="Paste your data here…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-      <div class="error-line" id="sourceError"></div>
+      <textarea class="textarea" id="sourceInput" aria-label="Source data" placeholder="Paste your data here…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      <div class="error-line" id="sourceError" role="alert"></div>
     </div>
     <div class="panel">
       <div class="panel-head">
@@ -558,7 +562,7 @@
           </button>
         </div>
       </div>
-      <textarea class="textarea" id="outputArea" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <textarea class="textarea" id="outputArea" aria-label="Converted output" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
     </div>
   </div>
 
@@ -567,6 +571,7 @@
     <div id="optionsBody" style="display: flex; gap: 14px 24px; flex-wrap: wrap; align-items: center; flex: 1;">
       <span class="options-empty">—</span>
     </div>
+    <button class="sample-chip" id="shareBtn" title="Copy a link to these settings">Copy settings link</button>
   </div>
 
   <div class="samples-row">
@@ -596,7 +601,7 @@
       </div>
       <div class="faq-item">
         <h4>Is anything uploaded?</h4>
-        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> We load js-yaml from our server for YAML support, but the conversion itself is all client-side.</p>
+        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> We load js-yaml from our server for YAML support, but the conversion itself is all client-side. Settings links encode only your format and option choices in the URL fragment — never your data.</p>
       </div>
       <div class="faq-item">
         <h4>What about very large files?</h4>
@@ -605,6 +610,10 @@
       <div class="faq-item">
         <h4>When should I pick JSON vs YAML vs TOML?</h4>
         <p>Short version: <em>JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are.</em> For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: <a href="/blog/json-yaml-toml/">JSON vs YAML vs TOML: when to use what</a>.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Are there keyboard shortcuts?</h4>
+        <p>Yes: <code>Ctrl/⌘+Enter</code> converts, <code>Ctrl/⌘+Shift+S</code> swaps the from/to formats, <code>Ctrl/⌘+Shift+L</code> copies a settings link, and <code>Esc</code> dismisses the toast. <em>Ctrl/⌘+K opens the site-wide command palette.</em></p>
       </div>
       <div class="faq-item">
         <h4>What about XLSX?</h4>
@@ -1808,6 +1817,7 @@ function renderOptions() {
       checkInp.addEventListener('change', () => {
         state.opts[o.key] = checkInp.checked;
         convert();
+        syncUrl();
       });
       checkLab.appendChild(checkInp);
       checkLab.appendChild(document.createTextNode(o.label));
@@ -1833,6 +1843,7 @@ function renderOptions() {
       sel.addEventListener('change', () => {
         state.opts[o.key] = sel.value;
         convert();
+        syncUrl();
       });
       group.appendChild(sel);
       body.appendChild(group);
@@ -1853,6 +1864,7 @@ function renderOptions() {
       const v = o.type === 'number' ? parseInt(e.target.value) : e.target.value;
       state.opts[o.key] = v;
       convert();
+      syncUrl();
     });
     group.appendChild(inp);
     body.appendChild(group);
@@ -1936,6 +1948,7 @@ $('#fromSelect').addEventListener('change', e => {
   $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
   renderOptions();
   convert();
+  syncUrl();
 });
 
 $('#toSelect').addEventListener('change', e => {
@@ -1943,6 +1956,7 @@ $('#toSelect').addEventListener('change', e => {
   $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
   renderOptions();
   convert();
+  syncUrl();
 });
 
 $('#swapBtn').addEventListener('click', () => {
@@ -1959,6 +1973,7 @@ $('#swapBtn').addEventListener('click', () => {
   $('#sourceInput').value = oldOut;
   renderOptions();
   convert();
+  syncUrl();
   showToast('Swapped ' + FORMAT_LABELS[state.to].toLowerCase() + ' → ' + FORMAT_LABELS[state.from].toLowerCase());
 });
 
@@ -2024,17 +2039,31 @@ $$('.sample-chip').forEach(chip => {
     $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[fmt];
     renderOptions();
     convert();
+    syncUrl();
     showToast('Loaded: ' + chip.textContent);
   });
 });
 
-// Keyboard shortcut
+// Keyboard shortcuts (Cmd/Ctrl+K belongs to the site-wide command palette)
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key === 'Enter') {
     e.preventDefault();
     convert();
     showToast('Converted');
+    return;
   }
+  if (mod && e.shiftKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    $('#swapBtn').click();
+    return;
+  }
+  if (mod && e.shiftKey && e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    copyShareLink();
+    return;
+  }
+  if (e.key === 'Escape') $('#toast').classList.remove('show');
 });
 
 function showToast(msg) {
@@ -2045,7 +2074,91 @@ function showToast(msg) {
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+// ============================================================
+// URL settings sync — fragment only; source data is never serialized
+// ============================================================
+const OPT_DEFAULTS = { ...state.opts };
+const URL_ENUMS = {
+  csvDelimiterIn: ['comma', 'semicolon', 'pipe', 'tab'],
+  csvDelimiterOut: ['comma', 'semicolon', 'pipe', 'tab'],
+  sqlQuote: ['backtick', 'ansi', 'bracket'],
+};
+const URL_INTS = { jsonIndent: [0, 8], yamlIndent: [1, 8], xmlIndent: [0, 8] };
+
+function serializeSettings() {
+  const params = new URLSearchParams();
+  params.set('from', state.from);
+  params.set('to', state.to);
+  for (const key of Object.keys(OPT_DEFAULTS)) {
+    const val = state.opts[key];
+    if (val === OPT_DEFAULTS[key]) continue;
+    if (key === 'coerceTypes') params.set(key, val ? '1' : '0');
+    else params.set(key, String(val));
+  }
+  return params.toString();
+}
+
+function syncUrl() {
+  try {
+    const qs = serializeSettings();
+    history.replaceState(null, '', qs ? '#' + qs : location.pathname + location.search);
+  } catch (e) {
+    // URL sync must never break conversion
+  }
+}
+
+function applyUrlSettings() {
+  try {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const from = params.get('from');
+    const to = params.get('to');
+    if (from && FORMAT_LABELS[from]) state.from = from;
+    if (to && FORMAT_LABELS[to]) state.to = to;
+    for (const key of Object.keys(OPT_DEFAULTS)) {
+      if (!params.has(key)) continue;
+      const raw = params.get(key);
+      if (key === 'coerceTypes') { state.opts[key] = raw !== '0'; continue; }
+      if (key in URL_INTS) {
+        const n = parseInt(raw);
+        if (Number.isFinite(n)) {
+          state.opts[key] = Math.min(URL_INTS[key][1], Math.max(URL_INTS[key][0], n));
+        }
+        continue;
+      }
+      if (key in URL_ENUMS) {
+        if (URL_ENUMS[key].includes(raw)) state.opts[key] = raw;
+        continue;
+      }
+      state.opts[key] = raw;
+    }
+    $('#fromSelect').value = state.from;
+    $('#toSelect').value = state.to;
+    $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+    $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
+  } catch (e) {
+    // Malformed fragments are ignored
+  }
+}
+
+function copyShareLink() {
+  syncUrl();
+  const url = location.href.split('#')[0] + '#' + serializeSettings();
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Settings link copied — your data stays on your device');
+  }).catch(() => {
+    showToast('Copy blocked — copy the address bar URL');
+  });
+}
+
+$('#shareBtn').addEventListener('click', copyShareLink);
+
 // Init
+const MOD = /Mac|iP/.test(navigator.platform) ? '⌘' : 'Ctrl';
+$('#swapBtn').title = 'Swap from/to (' + MOD + '+Shift+S)';
+$('#shareBtn').title = 'Copy a link to these settings (' + MOD + '+Shift+L)';
+applyUrlSettings();
 renderOptions();
 convert();
 

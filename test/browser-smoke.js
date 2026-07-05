@@ -149,12 +149,83 @@ function loadPlaywright() {
     failures.push('error path: #sourceError never gained the "show" class');
   }
 
+  // Fragment load: settings-only URL restores formats and options
+  const fileUrl = 'file://' + path.join(__dirname, '..', 'index.html');
+  const page2 = await browser.newPage();
+  page2.on('pageerror', err => pageErrors.push('page2: ' + err.message));
+  await page2.goto(fileUrl + '#from=yaml&to=json&jsonIndent=4');
+  try {
+    await page2.waitForFunction(
+      () => document.querySelector('#fromSelect').value === 'yaml' &&
+            document.querySelector('#toSelect').value === 'json',
+      undefined,
+      { timeout: 5000 }
+    );
+    await page2.fill('#sourceInput', 'a: 1');
+    await page2.waitForFunction(
+      () => document.querySelector('#outputArea').value.includes('    "a": 1'),
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('fragment load: selects/options did not restore from #from=yaml&to=json&jsonIndent=4');
+  }
+  await page2.close();
+
+  // Hash auto-sync: changing settings updates the fragment
+  await page.selectOption('#fromSelect', 'json');
+  await page.selectOption('#toSelect', 'sql');
+  try {
+    await page.waitForFunction(
+      () => location.hash.includes('to=sql'),
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('hash sync: location.hash did not reflect to=sql');
+  }
+
+  // Keyboard swap: Ctrl+Shift+S swaps from/to
+  await page.selectOption('#fromSelect', 'json');
+  await page.selectOption('#toSelect', 'yaml');
+  await page.fill('#sourceInput', '{"a": 1}');
+  try {
+    await page.waitForFunction(
+      () => document.querySelector('#outputArea').value.includes('a: 1'),
+      undefined,
+      { timeout: 5000 }
+    );
+    await page.keyboard.press('Control+Shift+S');
+    await page.waitForFunction(
+      () => document.querySelector('#fromSelect').value === 'yaml',
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('keyboard swap: Ctrl+Shift+S did not swap formats');
+  }
+
+  // Delimiter option end-to-end through the real options UI
+  await page.selectOption('#fromSelect', 'csv');
+  await page.selectOption('#toSelect', 'json');
+  try {
+    await page.selectOption('#opt-csvDelimiterIn', 'semicolon');
+    await page.fill('#sourceInput', 'a;b\n1;2');
+    await page.waitForFunction(
+      () => document.querySelector('#outputArea').value.includes('"a": 1'),
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('delimiter option: semicolon csv did not parse via #opt-csvDelimiterIn');
+  }
+
   await browser.close();
 
   for (const f of failures) console.error('FAIL  ' + f);
   for (const e of pageErrors) console.error('PAGEERROR  ' + e);
   if (failures.length || pageErrors.length) process.exit(1);
-  console.log('SMOKE OK (8 cases)');
+  console.log('SMOKE OK (12 cases)');
 })().catch(err => {
   console.error(err);
   process.exit(1);

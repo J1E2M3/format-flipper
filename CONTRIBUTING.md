@@ -75,7 +75,7 @@ const SERIALIZERS = {
 };
 ```
 
-Also add your format to the UI's format selector (`<option value="xxx">XXX</option>`).
+Also add your format to the UI's format selector (`<option value="xxx">XXX</option>`). If your format needs options, push a descriptor in `renderOptions()` — supported types are `number`, `text`, `checkbox`, and `select`.
 
 ### 5. Write tests
 
