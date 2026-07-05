@@ -123,9 +123,8 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 ### TOML
 
 - Custom parser, hand-written in ~400 lines
-- Supports the TOML 1.0 subset that matters for config files: scalars, tables, inline tables, array-of-tables, dates, and multi-line strings (`"""basic"""` with escapes and line-ending backslash continuation, `'''literal'''`, leading newline trimmed)
+- Supports the TOML 1.0 subset that matters for config files: scalars (including hex/octal/binary integers), tables, inline tables, array-of-tables, dotted keys (`a.b = 1`), dates, and multi-line strings (`"""basic"""` with escapes and line-ending backslash continuation, `'''literal'''`, leading newline trimmed)
 - Multi-line strings are normalized into single-line tokens by a pre-pass, so the line-based parser core stays simple; a closing delimiter immediately preceded by quote characters (the `"""..""` spec corner) is read as first-closer-wins
-- Remaining gaps: hex/octal/binary integer literals and inline dotted keys (use the `[section]` form)
 - Serializer preserves pair ordering, emits idiomatic TOML (bare keys when possible, quoted keys when required); multi-line values are emitted as single-line escaped strings, which round-trip cleanly
 
 ### INI

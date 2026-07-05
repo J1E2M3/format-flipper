@@ -1287,12 +1287,10 @@ function iniFormatValue(v) {
 // ============================================================
 // TOML — small focused parser + serializer, ~350 lines.
 // Supports TOML 1.0 subset: key=value, strings (basic + literal),
-// numbers (int/float, underscores), booleans, arrays, inline tables,
-// [section], [a.b.c], [[array-of-tables]], offset datetimes, comments,
-// multi-line strings ("""basic""" with escapes + line-ending backslash,
-// '''literal''').
-// Not supported: hex/octal/binary int literals,
-// inline dotted keys (use [section] form instead).
+// numbers (int/float, underscores, hex/octal/binary), booleans, arrays,
+// inline tables, [section], [a.b.c], [[array-of-tables]], dotted keys
+// (a.b = 1), offset datetimes, comments, multi-line strings ("""basic"""
+// with escapes + line-ending backslash, '''literal''').
 // ============================================================
 
 function parseToml(text) {
@@ -1338,10 +1336,11 @@ function parseToml(text) {
     const valRaw = line.slice(eqIdx + 1).trim();
     if (!keyRaw) err('empty key');
     if (!valRaw) err('empty value');
-    const key = tomlParseKeySingle(keyRaw, err);
+    const keyPath = tomlParseKeyPath(keyRaw, err);
     const value = tomlParseValue(valRaw, err);
-    if (key in current) err(`duplicate key "${key}"`);
-    current[key] = value;
+    const { parent, key } = tomlDescendForWrite(current, keyPath, err);
+    if (key in parent) err(`duplicate key "${key}"`);
+    parent[key] = value;
   }
   return root;
 }
@@ -1554,6 +1553,9 @@ function tomlParseLiteralString(s, err) {
 
 function tomlParseNumber(s, err) {
   const normalized = s.replace(/_/g, '');
+  if (/^0x[0-9a-fA-F]+$/.test(normalized)) return parseInt(normalized.slice(2), 16);
+  if (/^0o[0-7]+$/.test(normalized)) return parseInt(normalized.slice(2), 8);
+  if (/^0b[01]+$/.test(normalized)) return parseInt(normalized.slice(2), 2);
   if (/^[+-]?\d+$/.test(normalized)) {
     const n = parseInt(normalized, 10);
     if (!Number.isFinite(n)) err(`integer out of range: ${s}`);

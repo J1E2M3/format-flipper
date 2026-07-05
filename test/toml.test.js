@@ -158,6 +158,40 @@ test('toml: line numbers stay accurate after a multi-line string', () => {
   assertThrows(() => PARSERS.toml(input), /TOML line 4/);
 });
 
+test('toml: parses hex, octal, and binary integers with underscores', () => {
+  assertEq(PARSERS.toml('h = 0xDEADBEEF\no = 0o755\nb = 0b1101\nhu = 0xdead_beef'), {
+    h: 3735928559,
+    o: 493,
+    b: 13,
+    hu: 3735928559,
+  });
+});
+
+test('toml: rejects malformed radix literals', () => {
+  assertThrows(() => PARSERS.toml('x = 0xGG'), /unrecognized value/);
+  assertThrows(() => PARSERS.toml('x = 0o9'), /unrecognized value/);
+  assertThrows(() => PARSERS.toml('x = 0b2'), /unrecognized value/);
+});
+
+test('toml: inline dotted keys build nested tables', () => {
+  assertEq(PARSERS.toml('a.b.c = 1\na.b.d = 2\na.e = 3'), {
+    a: { b: { c: 1, d: 2 }, e: 3 },
+  });
+});
+
+test('toml: dotted keys work inside sections', () => {
+  assertEq(PARSERS.toml('[s]\nx.y = 1\nx.z = "w"'), { s: { x: { y: 1, z: 'w' } } });
+});
+
+test('toml: quoted key segments keep their dots', () => {
+  assertEq(PARSERS.toml('"a.b".c = 1'), { 'a.b': { c: 1 } });
+});
+
+test('toml: dotted key conflicts and duplicates throw', () => {
+  assertThrows(() => PARSERS.toml('a = 1\na.b = 2'), /not a table/);
+  assertThrows(() => PARSERS.toml('a.b = 1\na.b = 2'), /duplicate key/);
+});
+
 test('toml ↔ json cross-format conversions', () => {
   const json = convert('name = "Tooly"\ntools = ["json", "yaml"]', 'toml', 'json');
   assertEq(PARSERS.json(json), { name: 'Tooly', tools: ['json', 'yaml'] });
