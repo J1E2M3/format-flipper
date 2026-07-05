@@ -1266,8 +1266,10 @@ function iniFormatValue(v) {
 // TOML — small focused parser + serializer, ~350 lines.
 // Supports TOML 1.0 subset: key=value, strings (basic + literal),
 // numbers (int/float, underscores), booleans, arrays, inline tables,
-// [section], [a.b.c], [[array-of-tables]], offset datetimes, comments.
-// Not supported: multi-line strings, hex/octal/binary int literals,
+// [section], [a.b.c], [[array-of-tables]], offset datetimes, comments,
+// multi-line strings ("""basic""" with escapes + line-ending backslash,
+// '''literal''').
+// Not supported: hex/octal/binary int literals,
 // inline dotted keys (use [section] form instead).
 // ============================================================
 
@@ -1275,13 +1277,13 @@ function parseToml(text) {
   const root = {};
   let current = root;
   const arrayOfTablesMarker = new Set();
-  const lines = text.split(/\r?\n/);
+  const entries = tomlJoinMultilineStrings(text.split(/\r?\n/));
   let lineNo = 0;
   const err = msg => { throw new Error(`TOML line ${lineNo}: ${msg}`); };
 
-  for (let rawLine of lines) {
-    lineNo++;
-    const line = tomlStripComment(rawLine);
+  for (const entry of entries) {
+    lineNo = entry.no;
+    const line = tomlStripComment(entry.text);
     if (!line) continue;
 
     if (line.startsWith('[[') && line.endsWith(']]')) {
@@ -1320,6 +1322,94 @@ function parseToml(text) {
     current[key] = value;
   }
   return root;
+}
+
+// Pre-pass: normalize """basic""" and '''literal''' multi-line strings
+// into ordinary single-line basic-string tokens before the line-based
+// parser runs. The quote-tracking helpers (tomlStripComment,
+// tomlFindUnquoted, tomlSplitTopLevel) never see a multi-line form, so
+// they stay simple. Each returned logical line carries the physical
+// line it started on, keeping error line numbers accurate.
+function tomlJoinMultilineStrings(physicalLines) {
+  const entries = [];
+  const errAt = (no, msg) => { throw new Error(`TOML line ${no}: ${msg}`); };
+  let i = 0;
+  while (i < physicalLines.length) {
+    const startNo = i + 1;
+    let out = '';
+    let line = physicalLines[i];
+    let pos = 0;
+    let inStr = null;
+    while (pos < line.length) {
+      const c = line[pos];
+      if (inStr === '"') {
+        if (c === '\\' && pos + 1 < line.length) { out += c + line[pos + 1]; pos += 2; continue; }
+        out += c; pos++;
+        if (c === '"') inStr = null;
+        continue;
+      }
+      if (inStr === "'") {
+        out += c; pos++;
+        if (c === "'") inStr = null;
+        continue;
+      }
+      if (c === '#') { out += line.slice(pos); break; }
+      if (line.startsWith('"""', pos) || line.startsWith("'''", pos)) {
+        const basic = c === '"';
+        const closer = basic ? '"""' : "'''";
+        const openLine = i + 1;
+        pos += 3;
+        let raw = '';
+        // A newline immediately after the opening delimiter is trimmed
+        if (pos >= line.length) {
+          i++;
+          if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+          line = physicalLines[i];
+          pos = 0;
+        }
+        for (;;) {
+          if (line.startsWith(closer, pos)) { pos += 3; break; }
+          if (pos >= line.length) {
+            raw += '\n';
+            i++;
+            if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+            line = physicalLines[i];
+            pos = 0;
+            continue;
+          }
+          const ch = line[pos];
+          if (basic && ch === '\\') {
+            if (/^\s*$/.test(line.slice(pos + 1))) {
+              // Line-ending backslash: trim the newline and all
+              // following whitespace up to the next non-blank content
+              i++;
+              while (i < physicalLines.length && physicalLines[i].trim() === '') i++;
+              if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+              line = physicalLines[i].replace(/^\s+/, '');
+              pos = 0;
+              continue;
+            }
+            raw += ch + line[pos + 1];
+            pos += 2;
+            continue;
+          }
+          raw += ch;
+          pos++;
+        }
+        const value = basic
+          ? tomlParseBasicString('"' + raw + '"', msg => errAt(openLine, msg))
+          : raw;
+        out += tomlFormatValue(value);
+        continue;
+      }
+      if (c === '"' || c === "'") { inStr = c; out += c; pos++; continue; }
+      out += c;
+      pos++;
+    }
+    entries.push({ text: out, no: startNo });
+    i++;
+  }
+  return entries;
 }
 
 function tomlStripComment(line) {
