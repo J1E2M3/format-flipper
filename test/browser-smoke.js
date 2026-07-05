@@ -90,6 +90,20 @@ function loadPlaywright() {
     ['"@id": 7', '"@admin": true']
   );
 
+  await runCase(
+    'ndjson → json',
+    'ndjson', 'json',
+    '{"id": 1}\n{"id": 2}',
+    ['"id": 2']
+  );
+
+  await runCase(
+    'json → ini',
+    'json', 'ini',
+    '{"a": {"b": 1}}',
+    ['[a]', 'b = 1']
+  );
+
   // Error path: malformed JSON must surface in #sourceError, not crash
   await page.selectOption('#fromSelect', 'json');
   await page.selectOption('#toSelect', 'yaml');
@@ -117,7 +131,7 @@ function loadPlaywright() {
   for (const f of failures) console.error('FAIL  ' + f);
   for (const e of pageErrors) console.error('PAGEERROR  ' + e);
   if (failures.length || pageErrors.length) process.exit(1);
-  console.log('SMOKE OK (5 cases)');
+  console.log('SMOKE OK (7 cases)');
 })().catch(err => {
   console.error(err);
   process.exit(1);

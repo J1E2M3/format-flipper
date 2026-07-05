@@ -1,10 +1,10 @@
 # Architecture
 
-How Format Flipper converts between 9 formats using 18 functions instead of 72.
+How Format Flipper converts between 11 formats using 22 functions instead of 110.
 
 ## The problem
 
-Given N formats, naive conversion requires N × (N−1) conversion functions — every format to every other format. For 9 formats, that's 72 functions to write, test, and maintain.
+Given N formats, naive conversion requires N × (N−1) conversion functions — every format to every other format. For 11 formats, that's 110 functions to write, test, and maintain.
 
 ```
 JSON → YAML         YAML → JSON         TOML → JSON         CSV → JSON    ...
@@ -29,7 +29,7 @@ Step 2:  YAML serializer  → "name: Tooly\n"   (YAML)
 
 The cost of adding a format is now **one parse function and one serialize function**. That's it — the format instantly works with every other format in both directions, because the router just composes the pair with any other format's pair.
 
-For 9 formats, this is 18 functions instead of 72. For 20 formats, it would be 40 functions instead of 380. The complexity is O(N).
+For 11 formats, this is 22 functions instead of 110. For 20 formats, it would be 40 functions instead of 380. The complexity is O(N).
 
 This is the approach [Pandoc](https://pandoc.org) uses for document formats, simplified here for tabular data and simple object hierarchies.
 
@@ -98,7 +98,7 @@ function convert(input, fromFormat, toFormat, opts) {
 
 That's the entire conversion engine. Everything else is in the parse and serialize functions for each format. `value` is just a plain JavaScript value — an object, array, string, number, or composition thereof.
 
-## The 9 parsers and serializers
+## The 11 parsers and serializers
 
 Each lives in its own section of `index.html` (not yet extracted into separate files, but clearly delineated). Quick summary of the non-obvious choices:
 
@@ -107,6 +107,12 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - Uses native `JSON.parse` / `JSON.stringify`
 - Accepts JSONC (comments + trailing commas) as input via a pre-processor
 - Serializes with 2-space indent by default
+
+### NDJSON
+
+- One JSON value per physical line; blank lines are skipped
+- Strict per-line `JSON.parse` — no JSONC leniency, so parse errors carry an exact line number
+- Parses to an array of values; serializes an array as one compact line per element (a non-array value becomes a single line)
 
 ### YAML
 
@@ -119,6 +125,14 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - Custom parser, hand-written in ~400 lines
 - Supports the TOML 1.0 subset that matters for config files: scalars, tables, inline tables, array-of-tables, dates
 - Serializer preserves pair ordering, emits idiomatic TOML (bare keys when possible, quoted keys when required)
+
+### INI
+
+- Global keys before any section become top-level values; `[section]` headers become nested objects, and dotted headers (`[a.b]`) descend a path (TOML symmetry — also how the serializer expresses deeper nesting)
+- Unquoted values run through the shared scalar coercion (so the "Coerce types" toggle applies); double-quoted values are taken literally with `\\ \" \n \t \r` escapes — that's how ambiguous strings like `"007"` round-trip
+- Full-line comments only (`;` or `#` as the first character) — values legitimately contain those characters inline, and INI has no quoting convention that disambiguates
+- Arrays and non-section objects are stored as JSON strings (INI has no list syntax; one-way lossy, matching the CSV convention); `null` becomes an empty value that re-parses as `''`
+- Duplicate keys and malformed lines throw with the line number, mirroring the TOML parser
 
 ### CSV and TSV
 
