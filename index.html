@@ -782,28 +782,41 @@ function parseXml(text) {
   const parseError = doc.querySelector('parsererror');
   if (parseError) throw new Error('Invalid XML: ' + parseError.textContent.slice(0, 100));
   const root = doc.documentElement;
-  // If root has repeated children with same tag, treat as array
+  // If an attribute-less root has repeated children with the same tag,
+  // treat it as an array of records
   const children = [...root.children];
-  if (children.length > 0 && children.every(c => c.tagName === children[0].tagName)) {
+  const rootAttrs = root.attributes ? root.attributes.length : 0;
+  if (children.length > 0 && rootAttrs === 0 && children.every(c => c.tagName === children[0].tagName)) {
     // Array of records
     return children.map(c => xmlNodeToObject(c));
   }
   return xmlNodeToObject(root);
 }
 
+function coerceXmlText(text) {
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  if (text === 'null') return null;
+  if (text === '') return '';
+  if (/^-?\d+$/.test(text)) return parseInt(text);
+  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
+  return text;
+}
+
 function xmlNodeToObject(node) {
   const children = [...node.children];
+  const obj = {};
+  // Attributes become @-prefixed keys (XSLT-style convention)
+  const attrs = node.attributes || [];
+  for (let i = 0; i < attrs.length; i++) {
+    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value);
+  }
   if (children.length === 0) {
     const text = node.textContent.trim();
-    // Type coercion
-    if (text === 'true') return true;
-    if (text === 'false') return false;
-    if (text === 'null' || text === '') return text === 'null' ? null : '';
-    if (/^-?\d+$/.test(text)) return parseInt(text);
-    if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
-    return text;
+    if (Object.keys(obj).length === 0) return coerceXmlText(text);
+    if (text !== '') obj['#text'] = coerceXmlText(text);
+    return obj;
   }
-  const obj = {};
   for (const child of children) {
     const val = xmlNodeToObject(child);
     if (child.tagName in obj) {
@@ -1016,8 +1029,28 @@ function objectToXml(obj, tag, indent, depth) {
   if (Array.isArray(obj)) {
     return obj.map(item => objectToXml(item, tag, indent, depth)).join('\n');
   }
-  const lines = [ind + '<' + tag + '>'];
+  // @-prefixed keys become attributes, #text becomes element text
+  let attrStr = '';
+  let text;
+  const childEntries = [];
   for (const [k, v] of Object.entries(obj)) {
+    if (k[0] === '@' && k.length > 1 && (v === null || typeof v !== 'object')) {
+      attrStr += ' ' + k.slice(1) + '="' + escapeXml(v === null ? '' : String(v)) + '"';
+    } else if (k === '#text' && (v === null || typeof v !== 'object')) {
+      text = v;
+    } else {
+      childEntries.push([k, v]);
+    }
+  }
+  if (childEntries.length === 0) {
+    if (text === null || text === undefined) return ind + '<' + tag + attrStr + '/>';
+    return ind + '<' + tag + attrStr + '>' + escapeXml(String(text)) + '</' + tag + '>';
+  }
+  const lines = [ind + '<' + tag + attrStr + '>'];
+  if (text !== null && text !== undefined) {
+    lines.push(' '.repeat(indent * (depth + 1)) + escapeXml(String(text)));
+  }
+  for (const [k, v] of childEntries) {
     lines.push(objectToXml(v, k, indent, depth + 1));
   }
   lines.push(ind + '</' + tag + '>');

@@ -52,6 +52,41 @@ test('xml: nested objects and arrays round-trip', () => {
   assertEq(PARSERS.xml(out), { owner: { name: 'Tooly', langs: ['js', 'html'] }, active: true });
 });
 
+test('xml: attributes become @-prefixed keys with type coercion', () => {
+  assertEq(PARSERS.xml('<user id="7" admin="true"><name>Ada</name></user>'), {
+    '@id': 7,
+    '@admin': true,
+    name: 'Ada',
+  });
+});
+
+test('xml: attributes on a text-bearing element use #text for the content', () => {
+  assertEq(PARSERS.xml('<price currency="USD">19.99</price>'), {
+    '@currency': 'USD',
+    '#text': 19.99,
+  });
+});
+
+test('xml: @-keys and #text serialize back to attributes and round-trip', () => {
+  const value = {
+    '@id': 7,
+    '@active': true,
+    name: 'Ada',
+    price: { '@currency': 'USD', '#text': 19.99 },
+  };
+  const out = SERIALIZERS.xml(value, { xmlRoot: 'user' });
+  assert(out.includes('<user id="7" active="true">'), 'expected root attributes, got ' + JSON.stringify(out));
+  assert(out.includes('<price currency="USD">19.99</price>'), 'expected attribute + text element, got ' + JSON.stringify(out));
+  assertEq(PARSERS.xml(out), value);
+});
+
+test('xml: attribute values are escaped and restored', () => {
+  const value = { '@label': 'a "b" & <c>', '#text': 'body' };
+  const out = SERIALIZERS.xml(value, { xmlRoot: 'node' });
+  assert(out.includes('label="a &quot;b&quot; &amp; &lt;c&gt;"'), 'expected escaped attribute, got ' + JSON.stringify(out));
+  assertEq(PARSERS.xml(out), value);
+});
+
 test('xml: invalid markup throws a parse error', () => {
   assertThrows(() => PARSERS.xml('<a><b></a>'), /Invalid XML/);
   assertThrows(() => PARSERS.xml('not xml at all'), /Invalid XML/);

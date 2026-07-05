@@ -29,6 +29,7 @@ class Element {
   constructor(tagName) {
     this.tagName = tagName;
     this.childNodes = [];
+    this.attributes = [];
   }
   get children() {
     return this.childNodes.filter(n => n instanceof Element);
@@ -126,29 +127,51 @@ function parseMarkup(src, html) {
     let name = m[1];
     if (html) name = name.toLowerCase();
     i += m[0].length;
+    const attrs = [];
     let selfClose = false;
     let closed = false;
     while (i < src.length) {
-      const c = src[i];
-      if (c === '>') { closed = true; i++; break; }
-      if (c === '/' && src[i + 1] === '>') { selfClose = true; closed = true; i += 2; break; }
-      if (c === '"' || c === "'") {
-        const end = src.indexOf(c, i + 1);
-        if (end < 0) {
-          if (!html) throw new Error('unterminated attribute value');
-          i = src.length;
-          break;
+      while (i < src.length && /\s/.test(src[i])) i++;
+      if (src[i] === '>') { closed = true; i++; break; }
+      if (src[i] === '/' && src[i + 1] === '>') { selfClose = true; closed = true; i += 2; break; }
+      const am = /^[^\s=/>]+/.exec(src.slice(i));
+      if (!am) { i++; continue; }
+      const attrName = html ? am[0].toLowerCase() : am[0];
+      i += am[0].length;
+      while (i < src.length && /\s/.test(src[i])) i++;
+      let attrValue = '';
+      if (src[i] === '=') {
+        i++;
+        while (i < src.length && /\s/.test(src[i])) i++;
+        const q = src[i];
+        if (q === '"' || q === "'") {
+          const end = src.indexOf(q, i + 1);
+          if (end < 0) {
+            if (!html) throw new Error('unterminated attribute value');
+            attrValue = src.slice(i + 1);
+            i = src.length;
+          } else {
+            attrValue = src.slice(i + 1, end);
+            i = end + 1;
+          }
+        } else {
+          const vm = /^[^\s>]*/.exec(src.slice(i));
+          attrValue = vm[0];
+          i += vm[0].length;
+          if (attrValue.endsWith('/') && src[i] === '>') {
+            attrValue = attrValue.slice(0, -1);
+            i--;
+          }
         }
-        i = end + 1;
-        continue;
       }
-      i++;
+      attrs.push({ name: attrName, value: decodeEntities(attrValue) });
     }
     if (!closed) {
       if (!html) throw new Error(`unterminated tag <${name}>`);
       break;
     }
     const el = new Element(name);
+    el.attributes = attrs;
     stack[stack.length - 1].childNodes.push(el);
     if (!selfClose && !(html && VOID_TAGS.has(name))) stack.push(el);
   }
