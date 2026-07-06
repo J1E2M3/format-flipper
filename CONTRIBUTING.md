@@ -31,11 +31,13 @@ Read [ARCHITECTURE.md](./ARCHITECTURE.md) first. The intermediate is plain JavaS
 Name it `parseXxx` where `Xxx` is your format. Signature:
 
 ```javascript
-function parseXxx(input /* string */) /* → JS value */ {
+function parseXxx(input /* string */, opts = {} /* shared UI options */) /* → JS value */ {
   // Parse input, return a plain JS object, array, or scalar.
   // Throw an Error with a helpful message if input is malformed.
 }
 ```
+
+If your format carries untyped text (like CSV cells), route scalar text through the shared `coerceScalar(text, opts)` helper so the UI's "Coerce types" toggle applies to your format too.
 
 Rules of thumb:
 - **Throw on malformed input**, don't silently drop data. Format Flipper surfaces errors to the user in a specific way and it expects parsers to throw.
@@ -73,7 +75,7 @@ const SERIALIZERS = {
 };
 ```
 
-Also add your format to the UI's format selector (`<option value="xxx">XXX</option>`).
+Also add your format to the UI's format selector (`<option value="xxx">XXX</option>`). If your format needs options, push a descriptor in `renderOptions()` — supported types are `number`, `text`, `checkbox`, and `select`.
 
 ### 5. Write tests
 

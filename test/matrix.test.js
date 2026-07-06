@@ -7,22 +7,25 @@
 const { test, assert, assertEq } = require('./runner');
 const { PARSERS, SERIALIZERS, convert, DEFAULT_OPTS } = require('./harness');
 
-const ALL_FORMATS = ['json', 'yaml', 'toml', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
+const ALL_FORMATS = ['json', 'ndjson', 'yaml', 'toml', 'ini', 'properties', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
 
 // Formats that can faithfully hold an array of flat records.
-const TABULAR = ['json', 'yaml', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
+// INI and .properties are excluded from both matrices: neither can
+// represent an array of records or an array of tables (and .properties
+// keeps keys flat) — their own tests cover round-trips.
+const TABULAR = ['json', 'ndjson', 'yaml', 'csv', 'tsv', 'xml', 'md', 'html', 'sql'];
 
 const RECORDS = [
   { id: 1, name: 'Ada Lovelace', active: true, score: 9.5 },
   { id: 2, name: 'Grace Hopper', active: false, score: 8.75 },
 ];
 
-test('registry: all 9 formats have a parser and a serializer', () => {
+test('registry: all 12 formats have a parser and a serializer', () => {
   assertEq(Object.keys(PARSERS).sort(), [...ALL_FORMATS].sort());
   assertEq(Object.keys(SERIALIZERS).sort(), [...ALL_FORMATS].sort());
 });
 
-test('matrix: records survive every tabular-format pair (8 × 8 = 64 paths)', () => {
+test('matrix: records survive every tabular-format pair (9 × 9 = 81 paths)', () => {
   const inputs = {};
   for (const fmt of TABULAR) {
     inputs[fmt] = SERIALIZERS[fmt](RECORDS, DEFAULT_OPTS);

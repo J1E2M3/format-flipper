@@ -17,3 +17,32 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: node test/run.js
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: node tools/build-package.js --check
+      - run: npm install --no-audit --no-fund
+        working-directory: packages/format-flipper
+      - run: node cli-smoke.js
+        working-directory: packages/format-flipper
+      - run: npm install --no-audit --no-fund
+        working-directory: packages/api-server
+      - run: node api-smoke.js
+        working-directory: packages/api-server
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node test/browser-smoke.js

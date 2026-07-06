@@ -1,13 +1,25 @@
 <!DOCTYPE html>
+<!--
+  Format Flipper — convert between 12 data formats, entirely in your browser.
+  Part of the Tooly McToolface workshop · https://toolymctoolface.com/format/
+
+  Copyright (c) 2026 Tooly McToolface
+  Licensed under the MIT License. Full text:
+  https://github.com/J1E2M3/format-flipper/blob/main/LICENSE
+
+  This single file is the whole tool. Save it, fork it, keep it forever —
+  this notice travels with it.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-aECLPcQFC3To8fWfU5nM5gsh3wADTCJwlwjYRtKZx00='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <title>Format Flipper — Convert JSON, YAML, CSV, XML, SQL · Tooly McToolface</title>
-<meta name="description" content="Convert between JSON, YAML, TOML, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 9 formats, any direction. Free, in your browser.">
+<meta name="description" content="Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 12 formats, any direction. Free, in your browser.">
 <meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
 
-<meta property="og:title" content="Format Flipper — Convert between 9 data formats">
+<meta property="og:title" content="Format Flipper — Convert between 12 data formats">
 <meta property="og:description" content="JSON ⇄ YAML ⇄ CSV ⇄ XML ⇄ Markdown ⇄ HTML ⇄ SQL. Any format to any other. Free, in your browser.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/og-format.png">
@@ -25,17 +37,17 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0E0D0B">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<link rel="preload" as="font" type="font/woff2" href="fonts/inter-normal-latin-6ab57b19.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/fraunces-normal-latin-8f90dc37.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/fraunces-italic-latin-c7622370.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/jetbrains-mono-normal-latin-0a7197f9.woff2" crossorigin>
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Format Flipper",
-  "description": "Convert between JSON, YAML, TOML, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT statements.",
+  "description": "Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT statements.",
   "url": "https://toolymctoolface.com/format/",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any (browser)",
@@ -54,9 +66,164 @@
   ]
 }
 </script>
-
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can I convert between any two formats?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go JSON → TOML → SQL → YAML and back without losing anything (as long as the structure is tabular or JSON-compatible)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What's tabular data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "An array of objects that all share the same keys. Like a spreadsheet. CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape. NDJSON carries records naturally too — one JSON object per line. JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you handle quotes and special characters?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each format's escaping rules are respected. CSV wraps fields with commas, quotes, or newlines in double quotes. SQL escapes apostrophes by doubling them (O''Brien). YAML and XML use their standard escape mechanisms."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is anything uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. All parsing and serialization happens in your browser. Your data never leaves your device. Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What about very large files?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The tool handles multi-megabyte files but slows down past ~10,000 rows in the browser. For truly big data, use jq (for JSON), csvkit (for CSV), or write a script. This tool is for quick flips, not giant ETL jobs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When should I pick JSON vs YAML vs TOML?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Short version: JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are. For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: JSON vs YAML vs TOML: when to use what."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there keyboard shortcuts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes: Ctrl/⌘+Enter converts, Ctrl/⌘+Shift+S swaps the from/to formats, Ctrl/⌘+Shift+L copies a settings link, and Esc dismisses the toast. Ctrl/⌘+K opens the site-wide command palette."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What about XLSX?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not yet. XLSX parsing would nearly double the page size because the format is essentially a zipped XML archive. For now, if you have an XLSX file, open it in a spreadsheet app and save as CSV first. XLSX support is on the list for a future version."
+      }
+    }
+  ]
+}
+</script>
 
 <style>
+  /* Self-hosted fonts (latin subsets, mirrored from Google Fonts) — no third-party
+     font CDN call, consistent with the zero-external-dependency pitch. Font files
+     are licensed under the SIL Open Font License; see fonts/OFL.txt. */
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/fraunces-italic-latin-c7622370.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: italic;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/fraunces-italic-latin-c7622370.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/jetbrains-mono-normal-latin-0a7197f9.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/jetbrains-mono-normal-latin-0a7197f9.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
   :root {
     --bg: #0E0D0B;
     --bg-soft: #151310;
@@ -66,7 +233,7 @@
     --border-strong: #3A342D;
     --ink: #F2EDE4;
     --ink-soft: #A69F93;
-    --ink-dim: #6B655A;
+    --ink-dim: #8F8779; /* ≥4.5:1 (WCAG AA) on --bg, --bg-soft, --surface, and --surface-2 */
     --accent: #F4A940;
     --accent-hover: #FFB85C;
     --accent-dim: #B37E2C;
@@ -75,6 +242,19 @@
     --error: #D4766B;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .skip-link {
+    position: absolute; left: -9999px; z-index: 100;
+    background: var(--accent); color: var(--bg);
+    padding: 10px 18px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+  .skip-link:focus { left: 16px; top: 16px; }
+  .sample-chip.pro-active { border-color: var(--accent); color: var(--accent); }
   html, body {
     background: var(--bg); color: var(--ink);
     font-family: 'Inter', system-ui, sans-serif;
@@ -341,6 +521,11 @@
     text-transform: uppercase; letter-spacing: 0.05em;
   }
   .opt-check input { width: 14px; height: 14px; accent-color: var(--accent); }
+  .opt-select { min-width: 120px; cursor: pointer; }
+  .sample-chip:focus-visible, .icon-btn:focus-visible, .swap-btn:focus-visible,
+  .format-select:focus-visible, .textarea:focus-visible, .opt-input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
 
   /* ---- Samples row ---- */
   .samples-row {
@@ -379,17 +564,17 @@
     grid-template-columns: 1fr 2fr;
     gap: 48px;
   }
-  .education h3 {
+  .education h2 {
     font-family: 'Fraunces', serif;
     font-size: 40px; font-weight: 500;
     letter-spacing: -0.03em; line-height: 1;
   }
-  .education h3 .swash { font-style: italic; color: var(--accent); font-weight: 400; }
+  .education h2 .swash { font-style: italic; color: var(--accent); font-weight: 400; }
   .faq-grid {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 24px 32px;
   }
-  .faq-item h4 {
+  .faq-item h3 {
     font-family: 'Fraunces', serif;
     font-size: 17px; font-weight: 500;
     margin-bottom: 6px;
@@ -456,9 +641,14 @@
   }
 </style>
 <script defer src="/commandk.js"></script>
-<script defer data-domain="toolymctoolface.com" src="https://plausible.io/js/script.outbound-links.js"></script>
+<!-- SRI pin: if Plausible redeploys this script the browser refuses to run it
+     (analytics stop, the tool keeps working). Refresh deliberately with:
+     curl -s https://plausible.io/js/script.outbound-links.js | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script defer data-domain="toolymctoolface.com" src="https://plausible.io/js/script.outbound-links.js" integrity="sha384-lnP8QtLFKzqZ7DRBlL06WjW/+zvVEoeyx2yeyF1TybVJKZW+FguErL7q5IizQyqD" crossorigin="anonymous"></script>
 </head>
 <body>
+
+<a class="skip-link" href="#converter">Skip to converter</a>
 
 <svg width="0" height="0" style="position:absolute;">
   <defs>
@@ -486,18 +676,23 @@
   </nav>
 
   <section class="hero">
-    <div class="eyebrow">Format Flipper · 9 formats · 72 directions</div>
+    <div class="eyebrow">Format Flipper · 12 formats · 132 directions</div>
     <h1>JSON, CSV, YAML, <span class="swash">flipped.</span></h1>
-    <p>Paste data in any of 9 formats. Pick what you want it to become. Get it instantly. <em>Works entirely in your browser</em> — your data never leaves your device.</p>
+    <p>Paste data in any of 12 formats. Pick what you want it to become. Get it instantly. <em>Works entirely in your browser</em> — your data never leaves your device.</p>
   </section>
 
+  <main id="converter">
+  <h2 class="visually-hidden">Convert your data</h2>
   <div class="format-row">
     <div class="format-picker">
       <span class="format-label">From</span>
-      <select class="format-select" id="fromSelect">
+      <select class="format-select" id="fromSelect" aria-label="Convert from format">
         <option value="json">JSON</option>
+        <option value="ndjson">NDJSON</option>
         <option value="yaml">YAML</option>
         <option value="toml">TOML</option>
+        <option value="ini">INI</option>
+        <option value="properties">.properties</option>
         <option value="csv">CSV</option>
         <option value="tsv">TSV</option>
         <option value="xml">XML</option>
@@ -511,10 +706,13 @@
     </button>
     <div class="format-picker">
       <span class="format-label">To</span>
-      <select class="format-select" id="toSelect">
+      <select class="format-select" id="toSelect" aria-label="Convert to format">
         <option value="json">JSON</option>
+        <option value="ndjson">NDJSON</option>
         <option value="yaml">YAML</option>
         <option value="toml">TOML</option>
+        <option value="ini">INI</option>
+        <option value="properties">.properties</option>
         <option value="csv" selected>CSV</option>
         <option value="tsv">TSV</option>
         <option value="xml">XML</option>
@@ -538,8 +736,8 @@
           </button>
         </div>
       </div>
-      <textarea class="textarea" id="sourceInput" placeholder="Paste your data here…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
-      <div class="error-line" id="sourceError"></div>
+      <textarea class="textarea" id="sourceInput" aria-label="Source data" placeholder="Paste your data here…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      <div class="error-line" id="sourceError" role="alert"></div>
     </div>
     <div class="panel">
       <div class="panel-head">
@@ -553,7 +751,7 @@
           </button>
         </div>
       </div>
-      <textarea class="textarea" id="outputArea" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <textarea class="textarea" id="outputArea" aria-label="Converted output" aria-live="polite" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
     </div>
   </div>
 
@@ -562,6 +760,8 @@
     <div id="optionsBody" style="display: flex; gap: 14px 24px; flex-wrap: wrap; align-items: center; flex: 1;">
       <span class="options-empty">—</span>
     </div>
+    <button class="sample-chip" id="shareBtn" title="Copy a link to these settings">Copy settings link</button>
+    <button class="sample-chip" id="proBtn" title="Pro: batch-convert multiple files at once">Pro</button>
   </div>
 
   <div class="samples-row">
@@ -570,37 +770,48 @@
     <button class="sample-chip" data-sample="products">Products catalog</button>
     <button class="sample-chip" data-sample="config">Config</button>
     <button class="sample-chip" data-sample="tasks">Tasks list</button>
+    <button class="sample-chip" data-sample="logs">Server logs</button>
+    <button class="sample-chip" data-sample="settings">App settings</button>
   </div>
+  </main>
 
   <section id="faq" class="education">
-    <h3>Formats, <span class="swash">explained.</span></h3>
+    <h2>Formats, <span class="swash">explained.</span></h2>
     <div class="faq-grid">
       <div class="faq-item">
-        <h4>Can I convert between any two formats?</h4>
-        <p>Yes — all 72 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go <code>JSON → TOML → SQL → YAML</code> and back without losing anything (as long as the structure is tabular or JSON-compatible).</p>
+        <h3>Can I convert between any two formats?</h3>
+        <p>Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go <code>JSON → TOML → SQL → YAML</code> and back without losing anything (as long as the structure is tabular or JSON-compatible).</p>
       </div>
       <div class="faq-item">
-        <h4>What's tabular data?</h4>
-        <p>An array of objects that all share the same keys. Like a spreadsheet. <em>CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape.</em> JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected.</p>
+        <h3>What's tabular data?</h3>
+        <p>An array of objects that all share the same keys. Like a spreadsheet. <em>CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape.</em> NDJSON carries records naturally too — one JSON object per line. JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected.</p>
       </div>
       <div class="faq-item">
-        <h4>How do you handle quotes and special characters?</h4>
+        <h3>How do you handle quotes and special characters?</h3>
         <p>Each format's escaping rules are respected. CSV wraps fields with commas, quotes, or newlines in double quotes. SQL escapes apostrophes by doubling them (<code>O''Brien</code>). YAML and XML use their standard escape mechanisms.</p>
       </div>
       <div class="faq-item">
-        <h4>Is anything uploaded?</h4>
-        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> We load js-yaml from our server for YAML support, but the conversion itself is all client-side.</p>
+        <h3>Is anything uploaded?</h3>
+        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data.</p>
       </div>
       <div class="faq-item">
-        <h4>What about very large files?</h4>
+        <h3>What about very large files?</h3>
         <p>The tool handles multi-megabyte files but slows down past ~10,000 rows in the browser. For truly big data, use <code>jq</code> (for JSON), <code>csvkit</code> (for CSV), or write a script. <em>This tool is for quick flips, not giant ETL jobs.</em></p>
       </div>
       <div class="faq-item">
-        <h4>When should I pick JSON vs YAML vs TOML?</h4>
+        <h3>When should I pick JSON vs YAML vs TOML?</h3>
         <p>Short version: <em>JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are.</em> For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: <a href="/blog/json-yaml-toml/">JSON vs YAML vs TOML: when to use what</a>.</p>
       </div>
       <div class="faq-item">
-        <h4>What about XLSX?</h4>
+        <h3>Are there keyboard shortcuts?</h3>
+        <p>Yes: <code>Ctrl/⌘+Enter</code> converts, <code>Ctrl/⌘+Shift+S</code> swaps the from/to formats, <code>Ctrl/⌘+Shift+L</code> copies a settings link, and <code>Esc</code> dismisses the toast. <em>Ctrl/⌘+K opens the site-wide command palette.</em></p>
+      </div>
+      <div class="faq-item">
+        <h3>What is Pro?</h3>
+        <p>One paid feature: <em>batch conversion</em> — drop multiple files onto the source panel and download them all converted, zipped, still entirely in your browser. A license key is verified offline against a public key baked into this page (no server call, ever) and stored in your browser's localStorage under <code>ff-license</code> — the only thing this tool ever stores, and it never leaves your device. Single-file drag &amp; drop is free for everyone.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What about XLSX?</h3>
         <p>Not yet. XLSX parsing would nearly double the page size because the format is essentially a zipped XML archive. For now, if you have an XLSX file, open it in a spreadsheet app and save as CSV first. <em>XLSX support is on the list for a future version.</em></p>
       </div>
     </div>
@@ -627,7 +838,10 @@
         <a href="/blog/">Blog</a>
         <a href="/benchmarks/">Benchmarks</a>
         <a href="/about/">About</a>
-        <a href="/privacy/">Privacy</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="accessibility.html">Accessibility</a>
+        <a href="https://github.com/J1E2M3/format-flipper" rel="noopener">Source &amp; support</a>
       </div>
     </div>
   </div>
@@ -719,11 +933,37 @@ function stripJsonc(text) {
   return out;
 }
 
+function parseNdjson(text) {
+  const values = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    try {
+      values.push(JSON.parse(lines[i]));
+    } catch (e) {
+      throw new Error('NDJSON line ' + (i + 1) + ': ' + e.message);
+    }
+  }
+  return values;
+}
+
 function parseYaml(text) {
   return window.jsyaml.load(text);
 }
 
-function parseDelimited(text, delimiter) {
+// Shared string → number/boolean sniffing for the tabular parsers.
+// Skipped entirely when opts.coerceTypes === false (input-side UI toggle).
+function coerceScalar(text, opts) {
+  if (opts && opts.coerceTypes === false) return text;
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  if (/^-?\d+$/.test(text)) return parseInt(text);
+  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
+  return text;
+}
+
+function parseDelimited(text, delimiter, opts) {
+  const strict = !!(opts && opts.strictParse);
   const rows = [];
   let current = [];
   let field = '';
@@ -749,6 +989,7 @@ function parseDelimited(text, delimiter) {
       field += c; i++;
     }
   }
+  if (inQuotes && strict) throw new Error('unterminated quoted field');
   if (field !== '' || current.length > 0) {
     current.push(field);
     if (current.length > 1 || current[0] !== '') rows.push(current);
@@ -757,26 +998,25 @@ function parseDelimited(text, delimiter) {
   const header = rows[0];
   const records = [];
   for (let r = 1; r < rows.length; r++) {
+    if (strict && rows[r].length !== header.length) {
+      throw new Error(`row ${r + 1} has ${rows[r].length} field${rows[r].length === 1 ? '' : 's'}, expected ${header.length}`);
+    }
     const obj = {};
     for (let c = 0; c < header.length; c++) {
-      let val = rows[r][c] ?? '';
-      // Coerce types for convenience
-      if (val === 'true') val = true;
-      else if (val === 'false') val = false;
-      else if (val === '') val = '';
-      else if (/^-?\d+$/.test(val)) val = parseInt(val);
-      else if (/^-?\d*\.\d+$/.test(val)) val = parseFloat(val);
-      obj[header[c]] = val;
+      obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
     }
     records.push(obj);
   }
   return records;
 }
 
-function parseCsv(text) { return parseDelimited(text, ','); }
-function parseTsv(text) { return parseDelimited(text, '\t'); }
+const CSV_DELIMITERS = { comma: ',', semicolon: ';', pipe: '|', tab: '\t' };
+function csvDelimiter(name) { return CSV_DELIMITERS[name] || ','; }
 
-function parseXml(text) {
+function parseCsv(text, opts) { return parseDelimited(text, csvDelimiter(opts && opts.csvDelimiterIn), opts); }
+function parseTsv(text, opts) { return parseDelimited(text, '\t', opts); }
+
+function parseXml(text, opts) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, 'text/xml');
   const parseError = doc.querySelector('parsererror');
@@ -788,37 +1028,33 @@ function parseXml(text) {
   const rootAttrs = root.attributes ? root.attributes.length : 0;
   if (children.length > 0 && rootAttrs === 0 && children.every(c => c.tagName === children[0].tagName)) {
     // Array of records
-    return children.map(c => xmlNodeToObject(c));
+    return children.map(c => xmlNodeToObject(c, opts));
   }
-  return xmlNodeToObject(root);
+  return xmlNodeToObject(root, opts);
 }
 
-function coerceXmlText(text) {
-  if (text === 'true') return true;
-  if (text === 'false') return false;
+function coerceXmlText(text, opts) {
+  if (opts && opts.coerceTypes === false) return text;
   if (text === 'null') return null;
-  if (text === '') return '';
-  if (/^-?\d+$/.test(text)) return parseInt(text);
-  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
-  return text;
+  return coerceScalar(text, opts);
 }
 
-function xmlNodeToObject(node) {
+function xmlNodeToObject(node, opts) {
   const children = [...node.children];
   const obj = {};
   // Attributes become @-prefixed keys (XSLT-style convention)
   const attrs = node.attributes || [];
   for (let i = 0; i < attrs.length; i++) {
-    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value);
+    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value, opts);
   }
   if (children.length === 0) {
     const text = node.textContent.trim();
-    if (Object.keys(obj).length === 0) return coerceXmlText(text);
-    if (text !== '') obj['#text'] = coerceXmlText(text);
+    if (Object.keys(obj).length === 0) return coerceXmlText(text, opts);
+    if (text !== '') obj['#text'] = coerceXmlText(text, opts);
     return obj;
   }
   for (const child of children) {
-    const val = xmlNodeToObject(child);
+    const val = xmlNodeToObject(child, opts);
     if (child.tagName in obj) {
       if (!Array.isArray(obj[child.tagName])) obj[child.tagName] = [obj[child.tagName]];
       obj[child.tagName].push(val);
@@ -829,7 +1065,7 @@ function xmlNodeToObject(node) {
   return obj;
 }
 
-function parseMarkdownTable(text) {
+function parseMarkdownTable(text, opts) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
   const parseCells = line => {
@@ -850,24 +1086,23 @@ function parseMarkdownTable(text) {
   };
   const header = parseCells(lines[0]);
   // lines[1] is the separator
+  const strict = !!(opts && opts.strictParse);
   const records = [];
   for (let i = 2; i < lines.length; i++) {
     const cells = parseCells(lines[i]);
+    if (strict && cells.length !== header.length) {
+      throw new Error(`table row ${i + 1} has ${cells.length} cell${cells.length === 1 ? '' : 's'}, expected ${header.length}`);
+    }
     const obj = {};
     for (let c = 0; c < header.length; c++) {
-      let v = cells[c] ?? '';
-      if (v === 'true') v = true;
-      else if (v === 'false') v = false;
-      else if (/^-?\d+$/.test(v)) v = parseInt(v);
-      else if (/^-?\d*\.\d+$/.test(v)) v = parseFloat(v);
-      obj[header[c]] = v;
+      obj[header[c]] = coerceScalar(cells[c] ?? '', opts);
     }
     records.push(obj);
   }
   return records;
 }
 
-function parseHtmlTable(text) {
+function parseHtmlTable(text, opts) {
   const parser = new DOMParser();
   const doc = parser.parseFromString('<!DOCTYPE html><html><body>' + text + '</body></html>', 'text/html');
   const table = doc.querySelector('table');
@@ -881,19 +1116,14 @@ function parseHtmlTable(text) {
   for (let r = 1; r < rows.length; r++) {
     const obj = {};
     for (let c = 0; c < header.length; c++) {
-      let v = rows[r][c] ?? '';
-      if (v === 'true') v = true;
-      else if (v === 'false') v = false;
-      else if (/^-?\d+$/.test(v)) v = parseInt(v);
-      else if (/^-?\d*\.\d+$/.test(v)) v = parseFloat(v);
-      obj[header[c]] = v;
+      obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
     }
     records.push(obj);
   }
   return records;
 }
 
-function parseSqlInsert(text) {
+function parseSqlInsert(text, opts) {
   const m = text.match(/INSERT\s+INTO\s+[`"']?(\w+)[`"']?\s*\(([^)]+)\)\s*VALUES\s*([\s\S]+)$/i);
   if (!m) throw new Error('Could not parse — expected: INSERT INTO table (cols) VALUES (vals), ...;');
   const cols = m[2].split(',').map(s => s.trim().replace(/^[`"']|[`"']$/g, ''));
@@ -917,7 +1147,7 @@ function parseSqlInsert(text) {
   }
   const records = [];
   for (const t of tuples) {
-    const vals = splitSqlValues(t);
+    const vals = splitSqlValues(t, opts);
     const obj = {};
     for (let c = 0; c < cols.length; c++) obj[cols[c]] = vals[c] ?? null;
     records.push(obj);
@@ -925,7 +1155,7 @@ function parseSqlInsert(text) {
   return records;
 }
 
-function splitSqlValues(s) {
+function splitSqlValues(s, opts) {
   const out = [];
   let cur = '', inStr = false, strCh = null;
   for (let i = 0; i < s.length; i++) {
@@ -936,23 +1166,159 @@ function splitSqlValues(s) {
       cur += c;
     } else {
       if (c === "'" || c === '"') { inStr = true; strCh = c; cur += c; continue; }
-      if (c === ',') { out.push(parseSqlValue(cur.trim())); cur = ''; continue; }
+      if (c === ',') { out.push(parseSqlValue(cur.trim(), opts)); cur = ''; continue; }
       cur += c;
     }
   }
-  if (cur.trim() !== '') out.push(parseSqlValue(cur.trim()));
+  if (cur.trim() !== '') out.push(parseSqlValue(cur.trim(), opts));
   return out;
 }
 
-function parseSqlValue(v) {
+function parseSqlValue(v, opts) {
+  // NULL and quote handling are SQL structure, not type sniffing —
+  // they apply regardless of the coerce-types toggle.
   if (v === 'NULL' || v === 'null') return null;
   if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1).replace(/''/g, "'").replace(/\\'/g, "'");
   if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1).replace(/""/g, '"');
-  if (/^-?\d+$/.test(v)) return parseInt(v);
-  if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
-  if (v === 'true' || v === 'TRUE') return true;
-  if (v === 'false' || v === 'FALSE') return false;
+  if (!opts || opts.coerceTypes !== false) {
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
+    if (v === 'true' || v === 'TRUE') return true;
+    if (v === 'false' || v === 'FALSE') return false;
+  }
   return v;
+}
+
+function parseIni(text, opts) {
+  const root = {};
+  let current = root;
+  const lines = text.split(/\r?\n/);
+  let lineNo = 0;
+  const err = msg => { throw new Error(`INI line ${lineNo}: ${msg}`); };
+
+  for (const rawLine of lines) {
+    lineNo++;
+    const line = rawLine.trim();
+    if (!line) continue;
+    // Full-line comments only — values legitimately contain ; and #
+    if (line[0] === ';' || line[0] === '#') continue;
+    if (line.startsWith('[') && line.endsWith(']')) {
+      const pathStr = line.slice(1, -1).trim();
+      if (!pathStr) err('empty section header');
+      const path = pathStr.split('.').map(s => s.trim());
+      if (path.some(s => !s)) err(`invalid section header [${pathStr}]`);
+      let node = root;
+      for (const seg of path) {
+        if (!(seg in node)) node[seg] = {};
+        else if (node[seg] === null || typeof node[seg] !== 'object' || Array.isArray(node[seg])) {
+          err(`[${pathStr}] conflicts with an existing non-section value`);
+        }
+        node = node[seg];
+      }
+      current = node;
+      continue;
+    }
+    const eqIdx = line.indexOf('=');
+    if (eqIdx < 0) err('expected "key = value" or "[section]"');
+    const key = line.slice(0, eqIdx).trim();
+    if (!key) err('empty key');
+    if (key in current) err(`duplicate key "${key}"`);
+    const valRaw = line.slice(eqIdx + 1).trim();
+    if (valRaw.length >= 2 && valRaw[0] === '"' && valRaw[valRaw.length - 1] === '"') {
+      current[key] = iniUnquote(valRaw, err);
+    } else {
+      current[key] = coerceScalar(valRaw, opts);
+    }
+  }
+  return root;
+}
+
+function iniUnquote(raw, err) {
+  let out = '';
+  for (let i = 1; i < raw.length - 1; i++) {
+    const c = raw[i];
+    if (c === '\\') {
+      const n = raw[++i];
+      if (n === 'n') out += '\n';
+      else if (n === 't') out += '\t';
+      else if (n === 'r') out += '\r';
+      else if (n === '"') out += '"';
+      else if (n === '\\') out += '\\';
+      else if (n === undefined) err('dangling backslash in quoted value');
+      else out += n;
+    } else out += c;
+  }
+  return out;
+}
+
+function parseProperties(text, opts) {
+  const records = {};
+  const physical = text.split(/\r?\n/);
+  const logical = [];
+  for (let i = 0; i < physical.length; i++) {
+    let line = physical[i];
+    const no = i + 1;
+    while (propHasContinuation(line) && i + 1 < physical.length) {
+      line = line.slice(0, -1) + physical[++i].replace(/^[ \t]+/, '');
+    }
+    logical.push({ line, no });
+  }
+  let lineNo = 0;
+  const err = msg => { throw new Error(`Properties line ${lineNo}: ${msg}`); };
+  for (const entry of logical) {
+    lineNo = entry.no;
+    const line = entry.line.replace(/^[ \t]+/, '');
+    if (!line) continue;
+    if (line[0] === '#' || line[0] === '!') continue;
+    // Key ends at the first unescaped =, :, or whitespace
+    let idx = -1;
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '\\') { j++; continue; }
+      if (line[j] === '=' || line[j] === ':' || line[j] === ' ' || line[j] === '\t') { idx = j; break; }
+    }
+    let keyRaw, valRaw;
+    if (idx < 0) {
+      keyRaw = line;
+      valRaw = '';
+    } else {
+      keyRaw = line.slice(0, idx);
+      let rest = line.slice(idx).replace(/^[ \t]+/, '');
+      if (rest[0] === '=' || rest[0] === ':') rest = rest.slice(1).replace(/^[ \t]+/, '');
+      valRaw = rest;
+    }
+    const key = propUnescape(keyRaw, err);
+    if (!key) err('empty key');
+    if (key in records) err(`duplicate key "${key}"`);
+    records[key] = coerceScalar(propUnescape(valRaw, err), opts);
+  }
+  return records;
+}
+
+function propHasContinuation(line) {
+  let n = 0;
+  for (let i = line.length - 1; i >= 0 && line[i] === '\\'; i--) n++;
+  return n % 2 === 1;
+}
+
+function propUnescape(s, err) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c !== '\\') { out += c; continue; }
+    const n = s[++i];
+    if (n === undefined) break;
+    if (n === 'n') out += '\n';
+    else if (n === 't') out += '\t';
+    else if (n === 'r') out += '\r';
+    else if (n === 'f') out += '\f';
+    else if (n === 'u') {
+      const hex = s.slice(i + 1, i + 5);
+      if (!/^[0-9a-fA-F]{4}$/.test(hex)) err('invalid \\uXXXX escape');
+      out += String.fromCharCode(parseInt(hex, 16));
+      i += 4;
+    } else out += n;
+  }
+  return out;
 }
 
 // ============================================================
@@ -961,6 +1327,11 @@ function parseSqlValue(v) {
 
 function serializeJson(data, opts) {
   return JSON.stringify(data, null, opts.jsonIndent ?? 2);
+}
+
+function serializeNdjson(data) {
+  if (!Array.isArray(data)) return JSON.stringify(data);
+  return data.map(v => v === undefined ? 'null' : JSON.stringify(v)).join('\n');
 }
 
 function serializeYaml(data, opts) {
@@ -988,7 +1359,7 @@ function serializeDelimited(records, delimiter) {
   return lines.join('\n');
 }
 
-function serializeCsv(data) { return serializeDelimited(data, ','); }
+function serializeCsv(data, opts) { return serializeDelimited(data, csvDelimiter(opts && opts.csvDelimiterOut)); }
 function serializeTsv(data) { return serializeDelimited(data, '\t'); }
 
 function serializeXml(data, opts) {
@@ -1103,10 +1474,17 @@ function serializeHtmlTable(records) {
   return lines.join('\n');
 }
 
+function sqlIdentQuoter(style) {
+  if (style === 'ansi') return id => '"' + String(id).replace(/"/g, '""') + '"';
+  if (style === 'bracket') return id => '[' + String(id).replace(/]/g, ']]') + ']';
+  return id => '`' + String(id).replace(/`/g, '``') + '`';
+}
+
 function serializeSqlInsert(records, opts) {
   if (!Array.isArray(records)) throw new Error('Expected an array for SQL INSERT');
   if (records.length === 0) return '';
   const tableName = (opts.sqlTable || 'data').replace(/[^a-zA-Z0-9_]/g, '');
+  const q = sqlIdentQuoter(opts.sqlQuote);
   const keys = [...new Set(records.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
   if (keys.length === 0) throw new Error('Records have no fields');
   const fmt = v => {
@@ -1131,13 +1509,13 @@ function serializeSqlInsert(records, opts) {
     return type || 'TEXT';
   };
   const lines = [];
-  lines.push('CREATE TABLE `' + tableName + '` (');
+  lines.push('CREATE TABLE ' + q(tableName) + ' (');
   keys.forEach((k, i) => {
-    lines.push('  `' + k + '` ' + colType(k) + (i === keys.length - 1 ? '' : ','));
+    lines.push('  ' + q(k) + ' ' + colType(k) + (i === keys.length - 1 ? '' : ','));
   });
   lines.push(');');
   lines.push('');
-  lines.push('INSERT INTO `' + tableName + '` (' + keys.map(k => '`' + k + '`').join(', ') + ') VALUES');
+  lines.push('INSERT INTO ' + q(tableName) + ' (' + keys.map(q).join(', ') + ') VALUES');
   for (let i = 0; i < records.length; i++) {
     const vals = keys.map(k => fmt(records[i][k])).join(', ');
     lines.push('  (' + vals + ')' + (i === records.length - 1 ? ';' : ','));
@@ -1145,26 +1523,110 @@ function serializeSqlInsert(records, opts) {
   return lines.join('\n');
 }
 
+function serializeIni(data) {
+  if (data === null || data === undefined) return '';
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('INI output needs a top-level object. Wrap your array: e.g. { items: [...] }');
+  }
+  const lines = [];
+  iniEmit(data, [], lines);
+  return lines.join('\n').replace(/^\n+/, '');
+}
+
+function iniEmit(obj, path, lines) {
+  const sectionKeys = [];
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) sectionKeys.push(k);
+    else lines.push(k + ' = ' + iniFormatValue(v));
+  }
+  for (const k of sectionKeys) {
+    const subPath = path.concat([k]);
+    lines.push('');
+    lines.push('[' + subPath.join('.') + ']');
+    iniEmit(obj[k], subPath, lines);
+  }
+}
+
+function iniFormatValue(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+  // INI has no list syntax — arrays ride along as JSON strings
+  if (Array.isArray(v) || typeof v === 'object') v = JSON.stringify(v);
+  const s = String(v);
+  const ambiguous = s === '' || coerceScalar(s, {}) !== s ||
+    s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes('\t') ||
+    s !== s.trim();
+  if (!ambiguous) return s;
+  return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+}
+
+function serializeProperties(data) {
+  if (data === null || data === undefined) return '';
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Properties output needs a top-level object. Wrap your array: e.g. { items: [...] }');
+  }
+  const lines = [];
+  propEmit(data, [], lines);
+  return lines.join('\n');
+}
+
+function propEmit(obj, path, lines) {
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+      // Nested objects flatten into dotted keys (one-way: parse keeps keys flat)
+      propEmit(v, path.concat([k]), lines);
+    } else {
+      lines.push(propEscapeKey(path.concat([k]).join('.')) + ' = ' + propEscapeValue(v));
+    }
+  }
+}
+
+function propEscapeKey(k) {
+  return String(k)
+    .replace(/\\/g, '\\\\')
+    .replace(/=/g, '\\=')
+    .replace(/:/g, '\\:')
+    .replace(/ /g, '\\ ')
+    .replace(/\t/g, '\\t')
+    .replace(/\n/g, '\\n')
+    .replace(/^([#!])/, '\\$1');
+}
+
+function propEscapeValue(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'object') v = JSON.stringify(v);
+  return String(v)
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\f/g, '\\f')
+    .replace(/^ /, '\\ ');
+}
+
 // ============================================================
 // TOML — small focused parser + serializer, ~350 lines.
 // Supports TOML 1.0 subset: key=value, strings (basic + literal),
-// numbers (int/float, underscores), booleans, arrays, inline tables,
-// [section], [a.b.c], [[array-of-tables]], offset datetimes, comments.
-// Not supported: multi-line strings, hex/octal/binary int literals,
-// inline dotted keys (use [section] form instead).
+// numbers (int/float, underscores, hex/octal/binary), booleans, arrays,
+// inline tables, [section], [a.b.c], [[array-of-tables]], dotted keys
+// (a.b = 1), offset datetimes, comments, multi-line strings ("""basic"""
+// with escapes + line-ending backslash, '''literal''').
 // ============================================================
 
 function parseToml(text) {
   const root = {};
   let current = root;
   const arrayOfTablesMarker = new Set();
-  const lines = text.split(/\r?\n/);
+  const entries = tomlJoinMultilineStrings(text.split(/\r?\n/));
   let lineNo = 0;
   const err = msg => { throw new Error(`TOML line ${lineNo}: ${msg}`); };
 
-  for (let rawLine of lines) {
-    lineNo++;
-    const line = tomlStripComment(rawLine);
+  for (const entry of entries) {
+    lineNo = entry.no;
+    const line = tomlStripComment(entry.text);
     if (!line) continue;
 
     if (line.startsWith('[[') && line.endsWith(']]')) {
@@ -1197,12 +1659,101 @@ function parseToml(text) {
     const valRaw = line.slice(eqIdx + 1).trim();
     if (!keyRaw) err('empty key');
     if (!valRaw) err('empty value');
-    const key = tomlParseKeySingle(keyRaw, err);
+    const keyPath = tomlParseKeyPath(keyRaw, err);
     const value = tomlParseValue(valRaw, err);
-    if (key in current) err(`duplicate key "${key}"`);
-    current[key] = value;
+    const { parent, key } = tomlDescendForWrite(current, keyPath, err);
+    if (key in parent) err(`duplicate key "${key}"`);
+    parent[key] = value;
   }
   return root;
+}
+
+// Pre-pass: normalize """basic""" and '''literal''' multi-line strings
+// into ordinary single-line basic-string tokens before the line-based
+// parser runs. The quote-tracking helpers (tomlStripComment,
+// tomlFindUnquoted, tomlSplitTopLevel) never see a multi-line form, so
+// they stay simple. Each returned logical line carries the physical
+// line it started on, keeping error line numbers accurate.
+function tomlJoinMultilineStrings(physicalLines) {
+  const entries = [];
+  const errAt = (no, msg) => { throw new Error(`TOML line ${no}: ${msg}`); };
+  let i = 0;
+  while (i < physicalLines.length) {
+    const startNo = i + 1;
+    let out = '';
+    let line = physicalLines[i];
+    let pos = 0;
+    let inStr = null;
+    while (pos < line.length) {
+      const c = line[pos];
+      if (inStr === '"') {
+        if (c === '\\' && pos + 1 < line.length) { out += c + line[pos + 1]; pos += 2; continue; }
+        out += c; pos++;
+        if (c === '"') inStr = null;
+        continue;
+      }
+      if (inStr === "'") {
+        out += c; pos++;
+        if (c === "'") inStr = null;
+        continue;
+      }
+      if (c === '#') { out += line.slice(pos); break; }
+      if (line.startsWith('"""', pos) || line.startsWith("'''", pos)) {
+        const basic = c === '"';
+        const closer = basic ? '"""' : "'''";
+        const openLine = i + 1;
+        pos += 3;
+        let raw = '';
+        // A newline immediately after the opening delimiter is trimmed
+        if (pos >= line.length) {
+          i++;
+          if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+          line = physicalLines[i];
+          pos = 0;
+        }
+        for (;;) {
+          if (line.startsWith(closer, pos)) { pos += 3; break; }
+          if (pos >= line.length) {
+            raw += '\n';
+            i++;
+            if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+            line = physicalLines[i];
+            pos = 0;
+            continue;
+          }
+          const ch = line[pos];
+          if (basic && ch === '\\') {
+            if (/^\s*$/.test(line.slice(pos + 1))) {
+              // Line-ending backslash: trim the newline and all
+              // following whitespace up to the next non-blank content
+              i++;
+              while (i < physicalLines.length && physicalLines[i].trim() === '') i++;
+              if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+              line = physicalLines[i].replace(/^\s+/, '');
+              pos = 0;
+              continue;
+            }
+            raw += ch + line[pos + 1];
+            pos += 2;
+            continue;
+          }
+          raw += ch;
+          pos++;
+        }
+        const value = basic
+          ? tomlParseBasicString('"' + raw + '"', msg => errAt(openLine, msg))
+          : raw;
+        out += tomlFormatValue(value);
+        continue;
+      }
+      if (c === '"' || c === "'") { inStr = c; out += c; pos++; continue; }
+      out += c;
+      pos++;
+    }
+    entries.push({ text: out, no: startNo });
+    i++;
+  }
+  return entries;
 }
 
 function tomlStripComment(line) {
@@ -1325,6 +1876,9 @@ function tomlParseLiteralString(s, err) {
 
 function tomlParseNumber(s, err) {
   const normalized = s.replace(/_/g, '');
+  if (/^0x[0-9a-fA-F]+$/.test(normalized)) return parseInt(normalized.slice(2), 16);
+  if (/^0o[0-7]+$/.test(normalized)) return parseInt(normalized.slice(2), 8);
+  if (/^0b[01]+$/.test(normalized)) return parseInt(normalized.slice(2), 2);
   if (/^[+-]?\d+$/.test(normalized)) {
     const n = parseInt(normalized, 10);
     if (!Number.isFinite(n)) err(`integer out of range: ${s}`);
@@ -1464,10 +2018,10 @@ function tomlFormatValue(v) {
 }
 
 // Registry
-const PARSERS = { json: parseJson, yaml: parseYaml, toml: parseToml, csv: parseCsv, tsv: parseTsv, xml: parseXml, md: parseMarkdownTable, html: parseHtmlTable, sql: parseSqlInsert };
-const SERIALIZERS = { json: serializeJson, yaml: serializeYaml, toml: serializeToml, csv: serializeCsv, tsv: serializeTsv, xml: serializeXml, md: serializeMarkdownTable, html: serializeHtmlTable, sql: serializeSqlInsert };
-const FORMAT_LABELS = { json: 'JSON', yaml: 'YAML', toml: 'TOML', csv: 'CSV', tsv: 'TSV', xml: 'XML', md: 'Markdown', html: 'HTML', sql: 'SQL' };
-const FORMAT_EXT = { json: 'json', yaml: 'yaml', toml: 'toml', csv: 'csv', tsv: 'tsv', xml: 'xml', md: 'md', html: 'html', sql: 'sql' };
+const PARSERS = { json: parseJson, ndjson: parseNdjson, yaml: parseYaml, toml: parseToml, ini: parseIni, properties: parseProperties, csv: parseCsv, tsv: parseTsv, xml: parseXml, md: parseMarkdownTable, html: parseHtmlTable, sql: parseSqlInsert };
+const SERIALIZERS = { json: serializeJson, ndjson: serializeNdjson, yaml: serializeYaml, toml: serializeToml, ini: serializeIni, properties: serializeProperties, csv: serializeCsv, tsv: serializeTsv, xml: serializeXml, md: serializeMarkdownTable, html: serializeHtmlTable, sql: serializeSqlInsert };
+const FORMAT_LABELS = { json: 'JSON', ndjson: 'NDJSON', yaml: 'YAML', toml: 'TOML', ini: 'INI', properties: 'Properties', csv: 'CSV', tsv: 'TSV', xml: 'XML', md: 'Markdown', html: 'HTML', sql: 'SQL' };
+const FORMAT_EXT = { json: 'json', ndjson: 'ndjson', yaml: 'yaml', toml: 'toml', ini: 'ini', properties: 'properties', csv: 'csv', tsv: 'tsv', xml: 'xml', md: 'md', html: 'html', sql: 'sql' };
 
 // ============================================================
 // State + rendering
@@ -1483,38 +2037,62 @@ const state = {
     xmlRoot: 'rows',
     xmlItem: 'row',
     sqlTable: 'data',
+    sqlQuote: 'backtick',
+    coerceTypes: true,
+    strictParse: false,
+    csvDelimiterIn: 'comma',
+    csvDelimiterOut: 'comma',
   },
 };
+
+const DELIM_CHOICES = [
+  { v: 'comma', label: 'Comma (,)' },
+  { v: 'semicolon', label: 'Semicolon (;)' },
+  { v: 'pipe', label: 'Pipe (|)' },
+  { v: 'tab', label: 'Tab' },
+];
+
+function setSourceError(message) {
+  const srcEl = $('#sourceInput');
+  const errEl = $('#sourceError');
+  if (message) {
+    errEl.textContent = message;
+    errEl.classList.add('show');
+    srcEl.setAttribute('aria-invalid', 'true');
+    srcEl.setAttribute('aria-describedby', 'sourceError');
+  } else {
+    errEl.classList.remove('show');
+    srcEl.removeAttribute('aria-invalid');
+    srcEl.removeAttribute('aria-describedby');
+  }
+}
 
 function convert() {
   const src = $('#sourceInput').value;
   state.source = src;
   const outEl = $('#outputArea');
-  const errEl = $('#sourceError');
 
   if (!src.trim()) {
     outEl.value = '';
-    errEl.classList.remove('show');
+    setSourceError(null);
     return;
   }
 
   let data;
   try {
-    data = PARSERS[state.from](src);
+    data = PARSERS[state.from](src, state.opts);
   } catch (err) {
-    errEl.textContent = 'Parse error: ' + err.message;
-    errEl.classList.add('show');
+    setSourceError('Parse error: ' + err.message);
     outEl.value = '';
     return;
   }
-  errEl.classList.remove('show');
+  setSourceError(null);
 
   try {
     const out = SERIALIZERS[state.to](data, state.opts);
     outEl.value = out;
   } catch (err) {
-    errEl.textContent = 'Conversion error: ' + err.message;
-    errEl.classList.add('show');
+    setSourceError('Conversion error: ' + err.message);
     outEl.value = '';
   }
 }
@@ -1541,6 +2119,25 @@ function renderOptions() {
   }
   if (state.to === 'sql') {
     opts.push({ type: 'text', key: 'sqlTable', label: 'Table name', val: state.opts.sqlTable });
+    opts.push({ type: 'select', key: 'sqlQuote', label: 'Identifier quotes', val: state.opts.sqlQuote, choices: [
+      { v: 'backtick', label: 'MySQL  `id`' },
+      { v: 'ansi', label: 'ANSI  "id"' },
+      { v: 'bracket', label: 'SQL Server  [id]' },
+    ] });
+  }
+  if (state.to === 'csv') {
+    opts.push({ type: 'select', key: 'csvDelimiterOut', label: 'Output delimiter', val: state.opts.csvDelimiterOut, choices: DELIM_CHOICES });
+  }
+
+  // Input-side options
+  if (state.from === 'csv') {
+    opts.push({ type: 'select', key: 'csvDelimiterIn', label: 'Input delimiter', val: state.opts.csvDelimiterIn, choices: DELIM_CHOICES });
+  }
+  if (['csv', 'tsv', 'md'].includes(state.from)) {
+    opts.push({ type: 'checkbox', key: 'strictParse', label: 'Strict parsing', val: state.opts.strictParse });
+  }
+  if (['csv', 'tsv', 'md', 'html', 'xml', 'sql', 'ini', 'properties'].includes(state.from)) {
+    opts.push({ type: 'checkbox', key: 'coerceTypes', label: 'Coerce types', val: state.opts.coerceTypes });
   }
 
   if (opts.length === 0) {
@@ -1551,6 +2148,48 @@ function renderOptions() {
   for (const o of opts) {
     const group = document.createElement('div');
     group.className = 'opt-group';
+    if (o.type === 'checkbox') {
+      const checkLab = document.createElement('label');
+      checkLab.className = 'opt-check';
+      const checkInp = document.createElement('input');
+      checkInp.type = 'checkbox';
+      checkInp.id = 'opt-' + o.key;
+      checkInp.checked = o.val;
+      checkInp.addEventListener('change', () => {
+        state.opts[o.key] = checkInp.checked;
+        convert();
+        syncUrl();
+      });
+      checkLab.appendChild(checkInp);
+      checkLab.appendChild(document.createTextNode(o.label));
+      group.appendChild(checkLab);
+      body.appendChild(group);
+      continue;
+    }
+    if (o.type === 'select') {
+      const selLab = document.createElement('label');
+      selLab.textContent = o.label;
+      selLab.setAttribute('for', 'opt-' + o.key);
+      group.appendChild(selLab);
+      const sel = document.createElement('select');
+      sel.id = 'opt-' + o.key;
+      sel.className = 'opt-input opt-select';
+      for (const c of o.choices) {
+        const optEl = document.createElement('option');
+        optEl.value = c.v;
+        optEl.textContent = c.label;
+        sel.appendChild(optEl);
+      }
+      sel.value = o.val;
+      sel.addEventListener('change', () => {
+        state.opts[o.key] = sel.value;
+        convert();
+        syncUrl();
+      });
+      group.appendChild(sel);
+      body.appendChild(group);
+      continue;
+    }
     const lab = document.createElement('label');
     lab.textContent = o.label;
     lab.setAttribute('for', 'opt-' + o.key);
@@ -1566,6 +2205,7 @@ function renderOptions() {
       const v = o.type === 'number' ? parseInt(e.target.value) : e.target.value;
       state.opts[o.key] = v;
       convert();
+      syncUrl();
     });
     group.appendChild(inp);
     body.appendChild(group);
@@ -1610,6 +2250,27 @@ features:
 3,Update changelog,true,low,2026-04-21
 4,Send announcement,false,med,2026-04-25`
   },
+  logs: {
+    ndjson: `{"ts":"2026-07-04T12:00:01Z","level":"info","msg":"server started","port":8080}
+{"ts":"2026-07-04T12:00:07Z","level":"warn","msg":"slow query","ms":412}
+{"ts":"2026-07-04T12:01:13Z","level":"error","msg":"upstream timeout","service":"billing"}
+{"ts":"2026-07-04T12:01:14Z","level":"info","msg":"retry succeeded","service":"billing"}`
+  },
+  settings: {
+    ini: `; app settings
+[app]
+name = Flipper
+version = "1.2"
+
+[window]
+width = 1280
+height = 800
+fullscreen = false
+
+[paths]
+data = ~/flipper/data
+cache = ~/flipper/cache`
+  },
 };
 
 // ============================================================
@@ -1626,7 +2287,9 @@ $('#sourceInput').addEventListener('input', scheduleConvert);
 $('#fromSelect').addEventListener('change', e => {
   state.from = e.target.value;
   $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+  renderOptions();
   convert();
+  syncUrl();
 });
 
 $('#toSelect').addEventListener('change', e => {
@@ -1634,6 +2297,7 @@ $('#toSelect').addEventListener('change', e => {
   $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
   renderOptions();
   convert();
+  syncUrl();
 });
 
 $('#swapBtn').addEventListener('click', () => {
@@ -1650,6 +2314,7 @@ $('#swapBtn').addEventListener('click', () => {
   $('#sourceInput').value = oldOut;
   renderOptions();
   convert();
+  syncUrl();
   showToast('Swapped ' + FORMAT_LABELS[state.to].toLowerCase() + ' → ' + FORMAT_LABELS[state.from].toLowerCase());
 });
 
@@ -1686,6 +2351,7 @@ $('#downloadBtn').addEventListener('click', () => {
   const stamp = new Date().toISOString().split('T')[0];
   const ext = FORMAT_EXT[state.to];
   const mime = state.to === 'json' ? 'application/json' :
+               state.to === 'ndjson' ? 'application/x-ndjson' :
                state.to === 'csv' ? 'text/csv' :
                state.to === 'html' ? 'text/html' :
                state.to === 'xml' ? 'application/xml' :
@@ -1712,18 +2378,33 @@ $$('.sample-chip').forEach(chip => {
     $('#fromSelect').value = fmt;
     $('#sourceInput').value = s[fmt];
     $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[fmt];
+    renderOptions();
     convert();
+    syncUrl();
     showToast('Loaded: ' + chip.textContent);
   });
 });
 
-// Keyboard shortcut
+// Keyboard shortcuts (Cmd/Ctrl+K belongs to the site-wide command palette)
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key === 'Enter') {
     e.preventDefault();
     convert();
     showToast('Converted');
+    return;
   }
+  if (mod && e.shiftKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    $('#swapBtn').click();
+    return;
+  }
+  if (mod && e.shiftKey && e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    copyShareLink();
+    return;
+  }
+  if (e.key === 'Escape') $('#toast').classList.remove('show');
 });
 
 function showToast(msg) {
@@ -1734,9 +2415,289 @@ function showToast(msg) {
   window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
+// ============================================================
+// URL settings sync — fragment only; source data is never serialized
+// ============================================================
+const OPT_DEFAULTS = { ...state.opts };
+const URL_ENUMS = {
+  csvDelimiterIn: ['comma', 'semicolon', 'pipe', 'tab'],
+  csvDelimiterOut: ['comma', 'semicolon', 'pipe', 'tab'],
+  sqlQuote: ['backtick', 'ansi', 'bracket'],
+};
+const URL_INTS = { jsonIndent: [0, 8], yamlIndent: [1, 8], xmlIndent: [0, 8] };
+const URL_BOOLS = ['coerceTypes', 'strictParse'];
+
+function serializeSettings() {
+  const params = new URLSearchParams();
+  params.set('from', state.from);
+  params.set('to', state.to);
+  for (const key of Object.keys(OPT_DEFAULTS)) {
+    const val = state.opts[key];
+    if (val === OPT_DEFAULTS[key]) continue;
+    if (URL_BOOLS.includes(key)) params.set(key, val ? '1' : '0');
+    else params.set(key, String(val));
+  }
+  return params.toString();
+}
+
+function syncUrl() {
+  try {
+    const qs = serializeSettings();
+    history.replaceState(null, '', qs ? '#' + qs : location.pathname + location.search);
+  } catch (e) {
+    // URL sync must never break conversion
+  }
+}
+
+function applyUrlSettings() {
+  try {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const from = params.get('from');
+    const to = params.get('to');
+    if (from && FORMAT_LABELS[from]) state.from = from;
+    if (to && FORMAT_LABELS[to]) state.to = to;
+    for (const key of Object.keys(OPT_DEFAULTS)) {
+      if (!params.has(key)) continue;
+      const raw = params.get(key);
+      if (URL_BOOLS.includes(key)) { state.opts[key] = raw !== '0'; continue; }
+      if (key in URL_INTS) {
+        const n = parseInt(raw);
+        if (Number.isFinite(n)) {
+          state.opts[key] = Math.min(URL_INTS[key][1], Math.max(URL_INTS[key][0], n));
+        }
+        continue;
+      }
+      if (key in URL_ENUMS) {
+        if (URL_ENUMS[key].includes(raw)) state.opts[key] = raw;
+        continue;
+      }
+      state.opts[key] = raw;
+    }
+    $('#fromSelect').value = state.from;
+    $('#toSelect').value = state.to;
+    $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+    $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
+  } catch (e) {
+    // Malformed fragments are ignored
+  }
+}
+
+function copyShareLink() {
+  syncUrl();
+  const url = location.href.split('#')[0] + '#' + serializeSettings();
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Settings link copied — your data stays on your device');
+  }).catch(() => {
+    showToast('Copy blocked — copy the address bar URL');
+  });
+}
+
+$('#shareBtn').addEventListener('click', copyShareLink);
+
+// ============================================================
+// Pro — offline license verification + batch conversion
+// Validation never makes a network call: the key is checked against
+// this Ed25519 public key with WebCrypto, on your device.
+// NOTE: demo keypair — regenerate with tools/generate-license-keypair.js
+// and replace this constant before selling real keys.
+// ============================================================
+const PRO_PUBLIC_KEY = 'n7JDLaTs+BZvqb6kC3C2EJWgPD+oIQo0uKAvmQtiydA=';
+const LICENSE_STORAGE_KEY = 'ff-license';
+let proLicense = null; // verified payload, or null
+
+function b64uDecode(s) {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function verifyLicense(key) {
+  try {
+    const parts = String(key).trim().split('.');
+    if (parts.length !== 3 || parts[0] !== 'FF1') return null;
+    const payload = b64uDecode(parts[1]);
+    const signature = b64uDecode(parts[2]);
+    const pubBytes = b64uDecode(PRO_PUBLIC_KEY);
+    const pub = await crypto.subtle.importKey('raw', pubBytes, { name: 'Ed25519' }, false, ['verify']);
+    const ok = await crypto.subtle.verify('Ed25519', pub, signature, payload);
+    if (!ok) return null;
+    const data = JSON.parse(new TextDecoder().decode(payload));
+    return data && data.plan === 'pro' ? data : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function renderProState() {
+  const btn = $('#proBtn');
+  if (proLicense) {
+    btn.textContent = 'Pro ✓';
+    btn.classList.add('pro-active');
+    btn.title = 'Pro active — licensed to ' + (proLicense.email || 'you');
+  } else {
+    btn.textContent = 'Pro';
+    btn.classList.remove('pro-active');
+    btn.title = 'Pro: batch-convert multiple files at once';
+  }
+}
+
+async function activateLicense(key, persist) {
+  const payload = await verifyLicense(key);
+  if (!payload) return false;
+  proLicense = payload;
+  if (persist) {
+    try { localStorage.setItem(LICENSE_STORAGE_KEY, String(key).trim()); } catch (e) { /* private mode */ }
+  }
+  renderProState();
+  return true;
+}
+
+$('#proBtn').addEventListener('click', async () => {
+  if (proLicense) {
+    showToast('Pro active — licensed to ' + (proLicense.email || 'you'));
+    return;
+  }
+  const key = prompt('Paste your Pro license key (verified offline — no server call):');
+  if (!key) return;
+  if (await activateLicense(key, true)) {
+    showToast('Pro activated — batch conversion unlocked');
+  } else {
+    showToast('That key did not verify — check for missing characters');
+  }
+});
+
+// ============================================================
+// Batch conversion (Pro) + single-file drag & drop (free)
+// ============================================================
+const EXT_TO_FORMAT = (() => {
+  const map = {};
+  for (const [fmt, ext] of Object.entries(FORMAT_EXT)) map[ext] = fmt;
+  Object.assign(map, { yml: 'yaml', jsonl: 'ndjson', markdown: 'md', htm: 'html', props: 'properties' });
+  return map;
+})();
+
+// ZIP-LIB start — store-only zip writer (no compression: converted text
+// is small, and this keeps the code auditable in a few dozen lines)
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZip(entries) {
+  const enc = new TextEncoder();
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+  const u16 = v => new Uint8Array([v & 0xFF, (v >> 8) & 0xFF]);
+  const u32 = v => new Uint8Array([v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF]);
+  for (const { name, text } of entries) {
+    const nameB = enc.encode(name);
+    const data = enc.encode(text);
+    const crc = crc32(data);
+    const local = [u32(0x04034B50), u16(20), u16(0x0800), u16(0), u16(0), u16(0),
+      u32(crc), u32(data.length), u32(data.length), u16(nameB.length), u16(0), nameB, data];
+    central.push({ nameB, crc, size: data.length, offset });
+    for (const part of local) { chunks.push(part); offset += part.length; }
+  }
+  const cdStart = offset;
+  for (const e of central) {
+    const rec = [u32(0x02014B50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0),
+      u32(e.crc), u32(e.size), u32(e.size), u16(e.nameB.length), u16(0), u16(0), u16(0), u16(0),
+      u32(0), u32(e.offset), e.nameB];
+    for (const part of rec) { chunks.push(part); offset += part.length; }
+  }
+  chunks.push(u32(0x06054B50), u16(0), u16(0), u16(central.length), u16(central.length),
+    u32(offset - cdStart), u32(cdStart), u16(0));
+  return new Blob(chunks, { type: 'application/zip' });
+}
+// ZIP-LIB end
+
+async function handleDroppedFiles(files) {
+  if (files.length === 1) {
+    // Single file: free for everyone — load it as the source
+    const file = files[0];
+    const text = await file.text();
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const fmt = EXT_TO_FORMAT[ext];
+    if (fmt) {
+      state.from = fmt;
+      $('#fromSelect').value = fmt;
+      $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[fmt];
+      renderOptions();
+    }
+    $('#sourceInput').value = text;
+    convert();
+    syncUrl();
+    showToast('Loaded ' + file.name);
+    return;
+  }
+  if (!proLicense) {
+    showToast('Batch conversion is a Pro feature — click Pro to enter a license key');
+    return;
+  }
+  const outputs = [];
+  const errors = [];
+  for (const file of files) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const from = EXT_TO_FORMAT[ext];
+    const base = file.name.replace(/\.[^.]*$/, '');
+    if (!from) { errors.push(file.name + ': unrecognized extension'); continue; }
+    try {
+      const out = SERIALIZERS[state.to](PARSERS[from](await file.text(), state.opts), state.opts);
+      outputs.push({ name: base + '.' + FORMAT_EXT[state.to], text: out });
+    } catch (err) {
+      errors.push(file.name + ': ' + err.message);
+    }
+  }
+  if (errors.length) outputs.push({ name: '_errors.txt', text: errors.join('\n') + '\n' });
+  if (outputs.length === (errors.length ? 1 : 0)) {
+    showToast('Batch failed — no file could be converted');
+    return;
+  }
+  const url = URL.createObjectURL(buildZip(outputs));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'format-flipper-batch.zip';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Batch: ' + (outputs.length - (errors.length ? 1 : 0)) + ' converted' +
+    (errors.length ? ', ' + errors.length + ' failed (see _errors.txt)' : ''));
+}
+
+const srcPanel = $('#sourceInput');
+srcPanel.addEventListener('dragover', e => { e.preventDefault(); });
+srcPanel.addEventListener('drop', e => {
+  if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+  e.preventDefault();
+  handleDroppedFiles([...e.dataTransfer.files]);
+});
+
 // Init
+const MOD = /Mac|iP/.test(navigator.platform) ? '⌘' : 'Ctrl';
+$('#swapBtn').title = 'Swap from/to (' + MOD + '+Shift+S)';
+$('#shareBtn').title = 'Copy a link to these settings (' + MOD + '+Shift+L)';
+applyUrlSettings();
 renderOptions();
 convert();
+try {
+  const stored = localStorage.getItem(LICENSE_STORAGE_KEY);
+  if (stored) activateLicense(stored, false);
+} catch (e) { /* storage unavailable — stays free */ }
 
 })();
 </script>

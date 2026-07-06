@@ -89,6 +89,38 @@ test('sql: round-trips records through CREATE TABLE + INSERT', () => {
   assertEq(PARSERS.sql(SERIALIZERS.sql(records, {})), records);
 });
 
+test('sql: coerceTypes:false leaves bare tokens as strings but NULL and quotes still apply', () => {
+  const input = "INSERT INTO t (a, b, c, d) VALUES (007, 'O''Brien', NULL, true);";
+  assertEq(PARSERS.sql(input, { coerceTypes: false }), [
+    { a: '007', b: "O'Brien", c: null, d: 'true' },
+  ]);
+});
+
+test('sql: ansi quoting emits double-quoted identifiers', () => {
+  const out = SERIALIZERS.sql([{ id: 1, name: 'Ada' }], { sqlTable: 'people', sqlQuote: 'ansi' });
+  assert(out.includes('CREATE TABLE "people" ('), 'expected ANSI CREATE TABLE, got ' + JSON.stringify(out));
+  assert(out.includes('"id" INTEGER'), 'expected ANSI column def');
+  assert(out.includes('INSERT INTO "people" ("id", "name") VALUES'), 'expected ANSI INSERT');
+});
+
+test('sql: bracket quoting emits square-bracket identifiers', () => {
+  const out = SERIALIZERS.sql([{ id: 1 }], { sqlTable: 'people', sqlQuote: 'bracket' });
+  assert(out.includes('CREATE TABLE [people] ('), 'expected bracket CREATE TABLE, got ' + JSON.stringify(out));
+  assert(out.includes('INSERT INTO [people] ([id]) VALUES'), 'expected bracket INSERT');
+});
+
+test('sql: defaults to backticks when sqlQuote omitted', () => {
+  const out = SERIALIZERS.sql([{ id: 1 }], { sqlTable: 'people' });
+  assert(out.includes('CREATE TABLE `people` ('), 'expected backtick default, got ' + JSON.stringify(out));
+});
+
+test('sql: doubles quote characters inside column identifiers', () => {
+  const ansi = SERIALIZERS.sql([{ 'we"ird': 1 }], { sqlQuote: 'ansi' });
+  assert(ansi.includes('"we""ird"'), 'expected doubled quote, got ' + JSON.stringify(ansi));
+  const tick = SERIALIZERS.sql([{ 'ti`ck': 1 }], {});
+  assert(tick.includes('`ti``ck`'), 'expected doubled backtick, got ' + JSON.stringify(tick));
+});
+
 test('sql → csv and json → sql cross-format conversions', () => {
   const csv = convert("INSERT INTO t (a, b) VALUES (1, 'x');", 'sql', 'csv');
   assertEq(csv, 'a,b\n1,x');

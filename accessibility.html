@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+  Format Flipper — Accessibility
+  Copyright (c) 2026 Tooly McToolface · MIT License
+  https://github.com/J1E2M3/format-flipper
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Accessibility · Format Flipper · Tooly McToolface</title>
+<meta name="description" content="Format Flipper accessibility conformance statement: WCAG 2.1 AA.">
+<link rel="canonical" href="https://toolymctoolface.com/format/accessibility/">
+<meta name="robots" content="index, follow">
+<style>
+  :root {
+    --bg: #0E0D0B; --surface: #181613; --border: #2A2621;
+    --ink: #F2EDE4; --ink-soft: #A69F93; --accent: #F4A940;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @font-face {
+    font-family: 'Fraunces'; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url('fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Inter'; font-style: normal; font-weight: 400 600; font-display: swap;
+    src: url('fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+  }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .crumb { font-size: 13px; color: var(--ink-soft); margin-bottom: 32px; display: inline-block; }
+  h1 { font-family: 'Fraunces', serif; font-size: 34px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .updated { color: var(--ink-soft); font-size: 13px; margin-bottom: 36px; }
+  h2 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 500; margin: 36px 0 10px; }
+  p, ul { margin-bottom: 14px; color: var(--ink); }
+  ul { padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { font-weight: 600; }
+  em { color: var(--accent); font-style: italic; }
+  code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  footer { border-top: 1px solid var(--border); margin-top: 56px; padding-top: 20px; font-size: 13px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="crumb" href="./">&larr; Back to Format Flipper</a>
+  <h1>Accessibility</h1>
+  <p class="updated">Statement last reviewed July 6, 2026</p>
+
+  <p>Format Flipper aims to conform to <strong>WCAG 2.1 Level AA</strong>. Accessibility is part of the tool&rsquo;s core promise: it should work for everyone, on any device, with any input method.</p>
+
+  <h2>What&rsquo;s implemented</h2>
+  <ul>
+    <li>All text colors meet or exceed the 4.5:1 AA contrast ratio on every background they appear on</li>
+    <li>Full keyboard operability &mdash; every control is reachable and usable without a mouse, with visible <code>:focus-visible</code> indicators, plus shortcuts (Ctrl/&#8984;+Enter to convert, Ctrl/&#8984;+Shift+S to swap)</li>
+    <li>A skip link and <code>&lt;main&gt;</code> landmark for jumping straight to the converter</li>
+    <li>Screen-reader support: labelled form controls, <code>role="alert"</code> plus <code>aria-invalid</code>/<code>aria-describedby</code> on parse errors, and a polite live region announcing converted output</li>
+    <li>A logical heading hierarchy (h1 &rarr; h2 &rarr; h3)</li>
+    <li>No motion beyond subtle hover transitions; no autoplaying or flashing content</li>
+  </ul>
+
+  <h2>Known limitations</h2>
+  <ul>
+    <li>Converting very large inputs happens synchronously and can briefly delay feedback on slow devices</li>
+    <li>The two large text areas rely on native browser textarea behavior for text navigation</li>
+  </ul>
+
+  <h2>Feedback</h2>
+  <p>If anything here doesn&rsquo;t work with your assistive technology, that&rsquo;s a bug &mdash; please email <a href="mailto:toolymctoolface@gmail.com">toolymctoolface@gmail.com</a> or open an issue on <a href="https://github.com/J1E2M3/format-flipper/issues" rel="noopener">GitHub</a>, and include the browser and assistive technology you were using.</p>
+  <footer>&copy; 2026 &middot; Tooly McToolface &middot; This page loads no scripts at all &mdash; view source to check.</footer>
+</div>
+</body>
+</html>

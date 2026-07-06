@@ -1,10 +1,10 @@
 # Architecture
 
-How Format Flipper converts between 9 formats using 18 functions instead of 72.
+How Format Flipper converts between 12 formats using 24 functions instead of 132.
 
 ## The problem
 
-Given N formats, naive conversion requires N × (N−1) conversion functions — every format to every other format. For 9 formats, that's 72 functions to write, test, and maintain.
+Given N formats, naive conversion requires N × (N−1) conversion functions — every format to every other format. For 12 formats, that's 132 functions to write, test, and maintain.
 
 ```
 JSON → YAML         YAML → JSON         TOML → JSON         CSV → JSON    ...
@@ -29,7 +29,7 @@ Step 2:  YAML serializer  → "name: Tooly\n"   (YAML)
 
 The cost of adding a format is now **one parse function and one serialize function**. That's it — the format instantly works with every other format in both directions, because the router just composes the pair with any other format's pair.
 
-For 9 formats, this is 18 functions instead of 72. For 20 formats, it would be 40 functions instead of 380. The complexity is O(N).
+For 12 formats, this is 24 functions instead of 132. For 20 formats, it would be 40 functions instead of 380. The complexity is O(N).
 
 This is the approach [Pandoc](https://pandoc.org) uses for document formats, simplified here for tabular data and simple object hierarchies.
 
@@ -89,16 +89,16 @@ See [the JSON vs YAML vs TOML article](https://toolymctoolface.com/blog/json-yam
 The function that composes parse and serialize is simple:
 
 ```javascript
-function convert(input, fromFormat, toFormat) {
+function convert(input, fromFormat, toFormat, opts) {
   if (fromFormat === toFormat) return input;
-  const value = PARSERS[fromFormat](input);
-  return SERIALIZERS[toFormat](value);
+  const value = PARSERS[fromFormat](input, opts);
+  return SERIALIZERS[toFormat](value, opts);
 }
 ```
 
-That's the entire conversion engine. Everything else is in the parse and serialize functions for each format. `value` is just a plain JavaScript value — an object, array, string, number, or composition thereof.
+That's the entire conversion engine. Everything else is in the parse and serialize functions for each format. UI concerns — option rendering, keyboard shortcuts, and the URL-fragment settings sync — live outside the engine section; the engine stays pure `(text, opts)` functions with no DOM or location access. `value` is just a plain JavaScript value — an object, array, string, number, or composition thereof.
 
-## The 9 parsers and serializers
+## The 12 parsers and serializers
 
 Each lives in its own section of `index.html` (not yet extracted into separate files, but clearly delineated). Quick summary of the non-obvious choices:
 
@@ -107,6 +107,12 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - Uses native `JSON.parse` / `JSON.stringify`
 - Accepts JSONC (comments + trailing commas) as input via a pre-processor
 - Serializes with 2-space indent by default
+
+### NDJSON
+
+- One JSON value per physical line; blank lines are skipped
+- Strict per-line `JSON.parse` — no JSONC leniency, so parse errors carry an exact line number
+- Parses to an array of values; serializes an array as one compact line per element (a non-array value becomes a single line)
 
 ### YAML
 
@@ -117,20 +123,41 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 ### TOML
 
 - Custom parser, hand-written in ~400 lines
-- Supports the TOML 1.0 subset that matters for config files: scalars, tables, inline tables, array-of-tables, dates
-- Serializer preserves pair ordering, emits idiomatic TOML (bare keys when possible, quoted keys when required)
+- Supports the TOML 1.0 subset that matters for config files: scalars (including hex/octal/binary integers), tables, inline tables, array-of-tables, dotted keys (`a.b = 1`), dates, and multi-line strings (`"""basic"""` with escapes and line-ending backslash continuation, `'''literal'''`, leading newline trimmed)
+- Multi-line strings are normalized into single-line tokens by a pre-pass, so the line-based parser core stays simple; a closing delimiter immediately preceded by quote characters (the `"""..""` spec corner) is read as first-closer-wins
+- Serializer preserves pair ordering, emits idiomatic TOML (bare keys when possible, quoted keys when required); multi-line values are emitted as single-line escaped strings, which round-trip cleanly
+
+### INI
+
+- Global keys before any section become top-level values; `[section]` headers become nested objects, and dotted headers (`[a.b]`) descend a path (TOML symmetry — also how the serializer expresses deeper nesting)
+- Unquoted values run through the shared scalar coercion (so the "Coerce types" toggle applies); double-quoted values are taken literally with `\\ \" \n \t \r` escapes — that's how ambiguous strings like `"007"` round-trip
+- Full-line comments only (`;` or `#` as the first character) — values legitimately contain those characters inline, and INI has no quoting convention that disambiguates
+- Arrays and non-section objects are stored as JSON strings (INI has no list syntax; one-way lossy, matching the CSV convention); `null` becomes an empty value that re-parses as `''`
+- Duplicate keys and malformed lines throw with the line number, mirroring the TOML parser
+
+### .properties
+
+- Java-style: `=`, `:`, or whitespace separators; `#` and `!` full-line comments; backslash line continuations; `\n \t \r \f \uXXXX` escapes in keys and values
+- Keys stay flat — `log4j.appender.stdout` is one key, never split on dots (that's how real .properties files are keyed)
+- The serializer flattens nested objects into dotted keys, which is one-way: parsing keeps the flattened keys flat. Arrays ride along as JSON strings
+- Ambiguous strings don't round-trip (`"007"` re-parses as `7` unless "Coerce types" is off) — the format has no quoting syntax to preserve them
+- Duplicate keys throw with the line number (the tool never silently drops data, unlike Java's last-wins behavior)
 
 ### CSV and TSV
 
 - RFC 4180 compliant for CSV
 - Handles quoted fields with embedded commas and newlines
 - First row is treated as header on parse
+- Cell text is type-coerced by default (`"true"` → `true`, `"42"` → `42`); the input-side "Coerce types" toggle turns this off for all untyped tabular formats
+- CSV's delimiter is selectable per side (comma, semicolon, pipe, or tab — `csvDelimiterIn` for parsing, `csvDelimiterOut` for output), chosen explicitly rather than auto-detected so parsing stays deterministic. TSV gets no delimiter option: tab-separated *is* the format, and CSV's Tab choice covers that shape
+- Parsing is deliberately lenient by default (ragged rows backfilled, unterminated quotes absorbed — matching how real-world CSV behaves); the `strictParse` option makes both conditions throw with a row number instead. Markdown tables share the same lenient-default/strict-option contract
 - On serialize, arrays of objects become rows; everything else stringifies the top-level
 
 ### XML
 
 - Simple DOM-level model: elements, attributes, text nodes
 - Attributes become object keys with `@`-prefix (XSLT-style convention); the text content of an attribute-bearing element lands in a `#text` key
+- Text and attribute values are type-coerced by default (including `'null'` → `null`); with "Coerce types" off, every value stays exactly the string that was typed
 - No DTD or namespace support — just the subset used for data exchange
 
 ### Markdown
@@ -147,6 +174,7 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 ### SQL
 
 - Recognizes `CREATE TABLE` + `INSERT INTO` patterns for tabular round-tripping
+- Identifier quoting is selectable via `sqlQuote`: MySQL backticks (default), ANSI double quotes, or SQL Server brackets; quote characters inside identifiers are escaped by doubling
 - Serializer emits the same two statements for any array-of-objects input
 - Not a general SQL parser
 
@@ -172,4 +200,4 @@ The whole tool is one HTML file because:
 - **Fast.** No framework boot time. 40 ms to interactive on a 2024 MacBook.
 - **Auditable.** You can read the entire tool in ~4000 lines of HTML+JS.
 
-If you want to extract the parsers into a proper npm package for server-side use, you're welcome to — the MIT license permits it. An organized extraction is on the project roadmap as a follow-on release.
+The parsers are also published as a proper npm package for server-side use: [`packages/format-flipper`](./packages/format-flipper/) ships the same engine as a Node library and CLI. The package's `engine.js` is *generated* from index.html by `tools/build-package.js` (the same marker extraction the test harness uses), so index.html remains the single source of truth and the published code is byte-identical to what the browser runs — CI fails if the generated copy drifts.

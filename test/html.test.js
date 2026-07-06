@@ -47,6 +47,11 @@ test('html: round-trips records', () => {
   assertEq(PARSERS.html(SERIALIZERS.html(records)), records);
 });
 
+test('html: coerceTypes:false keeps cell text verbatim', () => {
+  const input = '<table><tr><th>id</th><th>ok</th></tr><tr><td>007</td><td>true</td></tr></table>';
+  assertEq(PARSERS.html(input, { coerceTypes: false }), [{ id: '007', ok: 'true' }]);
+});
+
 test('html → csv cross-format conversion', () => {
   const csv = convert('<table><tr><th>a</th></tr><tr><td>1</td></tr></table>', 'html', 'csv');
   assertEq(csv, 'a\n1');

@@ -116,6 +116,82 @@ test('toml: serializer rejects a top-level array with guidance', () => {
   assertThrows(() => SERIALIZERS.toml([1, 2, 3], {}), /top-level object/);
 });
 
+test('toml: multi-line basic strings trim the leading newline and decode escapes', () => {
+  const input = 'a = """\nline1\nline2 with \\"quote\\" and \\t tab"""';
+  assertEq(PARSERS.toml(input), { a: 'line1\nline2 with "quote" and \t tab' });
+});
+
+test('toml: multi-line basic strings support backslash line continuation', () => {
+  const input = 'a = """\\\n\n   joined"""';
+  assertEq(PARSERS.toml(input), { a: 'joined' });
+});
+
+test('toml: multi-line literal strings are taken verbatim (no escapes)', () => {
+  const input = "p = '''\nC:\\Users\\nate\nline2'''";
+  assertEq(PARSERS.toml(input), { p: 'C:\\Users\\nate\nline2' });
+});
+
+test('toml: quotes and comment marks inside multi-line strings do not confuse parsing', () => {
+  const input = [
+    'a = """has "quote" and # hash',
+    'second""" # trailing comment',
+    'b = 2',
+  ].join('\n');
+  assertEq(PARSERS.toml(input), { a: 'has "quote" and # hash\nsecond', b: 2 });
+});
+
+test('toml: multi-line strings work inside arrays', () => {
+  assertEq(PARSERS.toml('a = ["""x\ny""", 2]'), { a: ['x\ny', 2] });
+});
+
+test('toml: multi-line values round-trip through the serializer', () => {
+  const value = { s: 'a\nb"c', t: 'tab\there' };
+  assertEq(PARSERS.toml(SERIALIZERS.toml(value, {})), value);
+});
+
+test('toml: unterminated multi-line string reports its opening line', () => {
+  assertThrows(() => PARSERS.toml('x = 1\ny = """\nnever closed'), /TOML line 2: unterminated multi-line string/);
+});
+
+test('toml: line numbers stay accurate after a multi-line string', () => {
+  const input = ['a = """', 'l1', 'l2"""', 'bad line'].join('\n');
+  assertThrows(() => PARSERS.toml(input), /TOML line 4/);
+});
+
+test('toml: parses hex, octal, and binary integers with underscores', () => {
+  assertEq(PARSERS.toml('h = 0xDEADBEEF\no = 0o755\nb = 0b1101\nhu = 0xdead_beef'), {
+    h: 3735928559,
+    o: 493,
+    b: 13,
+    hu: 3735928559,
+  });
+});
+
+test('toml: rejects malformed radix literals', () => {
+  assertThrows(() => PARSERS.toml('x = 0xGG'), /unrecognized value/);
+  assertThrows(() => PARSERS.toml('x = 0o9'), /unrecognized value/);
+  assertThrows(() => PARSERS.toml('x = 0b2'), /unrecognized value/);
+});
+
+test('toml: inline dotted keys build nested tables', () => {
+  assertEq(PARSERS.toml('a.b.c = 1\na.b.d = 2\na.e = 3'), {
+    a: { b: { c: 1, d: 2 }, e: 3 },
+  });
+});
+
+test('toml: dotted keys work inside sections', () => {
+  assertEq(PARSERS.toml('[s]\nx.y = 1\nx.z = "w"'), { s: { x: { y: 1, z: 'w' } } });
+});
+
+test('toml: quoted key segments keep their dots', () => {
+  assertEq(PARSERS.toml('"a.b".c = 1'), { 'a.b': { c: 1 } });
+});
+
+test('toml: dotted key conflicts and duplicates throw', () => {
+  assertThrows(() => PARSERS.toml('a = 1\na.b = 2'), /not a table/);
+  assertThrows(() => PARSERS.toml('a.b = 1\na.b = 2'), /duplicate key/);
+});
+
 test('toml ↔ json cross-format conversions', () => {
   const json = convert('name = "Tooly"\ntools = ["json", "yaml"]', 'toml', 'json');
   assertEq(PARSERS.json(json), { name: 'Tooly', tools: ['json', 'yaml'] });

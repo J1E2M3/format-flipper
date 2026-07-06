@@ -1,0 +1,40 @@
+{
+  "name": "format-flipper",
+  "version": "0.1.0",
+  "description": "Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT — 12 formats, any direction. The engine behind toolymctoolface.com/format, as a library and CLI.",
+  "license": "MIT",
+  "author": "Tooly McToolface <toolymctoolface@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/J1E2M3/format-flipper.git",
+    "directory": "packages/format-flipper"
+  },
+  "homepage": "https://toolymctoolface.com/format/",
+  "bugs": "https://github.com/J1E2M3/format-flipper/issues",
+  "keywords": [
+    "convert", "converter", "json", "ndjson", "yaml", "toml", "ini",
+    "properties", "csv", "tsv", "xml", "markdown", "html", "sql",
+    "json-to-csv", "csv-to-json", "yaml-to-json", "format"
+  ],
+  "main": "index.js",
+  "bin": {
+    "format-flipper": "bin/format-flipper.js"
+  },
+  "files": [
+    "index.js",
+    "engine.js",
+    "dom-shim.js",
+    "bin/",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node cli-smoke.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  }
+}
