@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<!--
+  Format Flipper — convert between 12 data formats, entirely in your browser.
+  Part of the Tooly McToolface workshop · https://toolymctoolface.com/format/
+
+  Copyright (c) 2026 Tooly McToolface
+  Licensed under the MIT License. Full text:
+  https://github.com/J1E2M3/format-flipper/blob/main/LICENSE
+
+  This single file is the whole tool. Save it, fork it, keep it forever —
+  this notice travels with it.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -66,7 +77,7 @@
     --border-strong: #3A342D;
     --ink: #F2EDE4;
     --ink-soft: #A69F93;
-    --ink-dim: #6B655A;
+    --ink-dim: #8F8779; /* ≥4.5:1 (WCAG AA) on --bg, --bg-soft, --surface, and --surface-2 */
     --accent: #F4A940;
     --accent-hover: #FFB85C;
     --accent-dim: #B37E2C;
@@ -603,7 +614,7 @@
       </div>
       <div class="faq-item">
         <h4>Is anything uploaded?</h4>
-        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> We load js-yaml from our server for YAML support, but the conversion itself is all client-side. Settings links encode only your format and option choices in the URL fragment — never your data.</p>
+        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data.</p>
       </div>
       <div class="faq-item">
         <h4>What about very large files?</h4>
@@ -646,6 +657,7 @@
         <a href="/benchmarks/">Benchmarks</a>
         <a href="/about/">About</a>
         <a href="/privacy/">Privacy</a>
+        <a href="https://github.com/J1E2M3/format-flipper" rel="noopener">Source &amp; support</a>
       </div>
     </div>
   </div>

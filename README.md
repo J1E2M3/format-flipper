@@ -55,7 +55,7 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 |--------|-------|-----------|-------|
 | JSON | ✓ | ✓ | Strict parser, accepts JSONC (comments + trailing commas) as input |
 | NDJSON | ✓ | ✓ | One JSON value per line, strict per-line parsing |
-| YAML | ✓ | ✓ | js-yaml 1.2, bundled inline (~39 KB) |
+| YAML | ✓ | ✓ | js-yaml 4.1.1 (YAML 1.2 spec), bundled inline (~39 KB) |
 | TOML | ✓ | ✓ | Custom parser, ~3 KB |
 | INI | ✓ | ✓ | Sections + dotted nesting, `;` and `#` comments; arrays stored as JSON strings |
 | .properties | ✓ | ✓ | Java-style: `=`/`:`/space separators, escapes, line continuations; keys stay flat |
