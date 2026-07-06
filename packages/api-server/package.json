@@ -1,0 +1,24 @@
+{
+  "name": "@toolymctoolface/format-flipper-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hosted conversion API wrapping the format-flipper engine. A separate product from the browser tool with a different, explicitly disclosed trust boundary.",
+  "license": "MIT",
+  "author": "Tooly McToolface <toolymctoolface@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/J1E2M3/format-flipper.git",
+    "directory": "packages/api-server"
+  },
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node api-smoke.js"
+  },
+  "dependencies": {
+    "format-flipper": "file:../format-flipper"
+  }
+}

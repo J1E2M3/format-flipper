@@ -30,6 +30,10 @@ jobs:
         working-directory: packages/format-flipper
       - run: node cli-smoke.js
         working-directory: packages/format-flipper
+      - run: npm install --no-audit --no-fund
+        working-directory: packages/api-server
+      - run: node api-smoke.js
+        working-directory: packages/api-server
 
   browser-smoke:
     runs-on: ubuntu-latest
