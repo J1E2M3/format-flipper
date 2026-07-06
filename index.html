@@ -14,7 +14,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-bNdWBeyzGwMSodNwsPD6OohdV+UGCND++2fVg5wTTgk='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-UXJhd0r15SgeSEG7cO0oVHk66HLRkuLJK3uAPBaIQv4='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <title>Format Flipper — Convert JSON, YAML, CSV, XML, SQL · Tooly McToolface</title>
 <meta name="description" content="Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 12 formats, any direction. Free, in your browser.">
 <meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
@@ -242,6 +242,18 @@
     --error: #D4766B;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .skip-link {
+    position: absolute; left: -9999px; z-index: 100;
+    background: var(--accent); color: var(--bg);
+    padding: 10px 18px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+  .skip-link:focus { left: 16px; top: 16px; }
   html, body {
     background: var(--bg); color: var(--ink);
     font-family: 'Inter', system-ui, sans-serif;
@@ -551,17 +563,17 @@
     grid-template-columns: 1fr 2fr;
     gap: 48px;
   }
-  .education h3 {
+  .education h2 {
     font-family: 'Fraunces', serif;
     font-size: 40px; font-weight: 500;
     letter-spacing: -0.03em; line-height: 1;
   }
-  .education h3 .swash { font-style: italic; color: var(--accent); font-weight: 400; }
+  .education h2 .swash { font-style: italic; color: var(--accent); font-weight: 400; }
   .faq-grid {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 24px 32px;
   }
-  .faq-item h4 {
+  .faq-item h3 {
     font-family: 'Fraunces', serif;
     font-size: 17px; font-weight: 500;
     margin-bottom: 6px;
@@ -635,6 +647,8 @@
 </head>
 <body>
 
+<a class="skip-link" href="#converter">Skip to converter</a>
+
 <svg width="0" height="0" style="position:absolute;">
   <defs>
     <symbol id="tooly-mini-sym" viewBox="0 0 36 36">
@@ -666,6 +680,8 @@
     <p>Paste data in any of 12 formats. Pick what you want it to become. Get it instantly. <em>Works entirely in your browser</em> — your data never leaves your device.</p>
   </section>
 
+  <main id="converter">
+  <h2 class="visually-hidden">Convert your data</h2>
   <div class="format-row">
     <div class="format-picker">
       <span class="format-label">From</span>
@@ -734,7 +750,7 @@
           </button>
         </div>
       </div>
-      <textarea class="textarea" id="outputArea" aria-label="Converted output" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+      <textarea class="textarea" id="outputArea" aria-label="Converted output" aria-live="polite" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
     </div>
   </div>
 
@@ -755,40 +771,41 @@
     <button class="sample-chip" data-sample="logs">Server logs</button>
     <button class="sample-chip" data-sample="settings">App settings</button>
   </div>
+  </main>
 
   <section id="faq" class="education">
-    <h3>Formats, <span class="swash">explained.</span></h3>
+    <h2>Formats, <span class="swash">explained.</span></h2>
     <div class="faq-grid">
       <div class="faq-item">
-        <h4>Can I convert between any two formats?</h4>
+        <h3>Can I convert between any two formats?</h3>
         <p>Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go <code>JSON → TOML → SQL → YAML</code> and back without losing anything (as long as the structure is tabular or JSON-compatible).</p>
       </div>
       <div class="faq-item">
-        <h4>What's tabular data?</h4>
+        <h3>What's tabular data?</h3>
         <p>An array of objects that all share the same keys. Like a spreadsheet. <em>CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape.</em> NDJSON carries records naturally too — one JSON object per line. JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected.</p>
       </div>
       <div class="faq-item">
-        <h4>How do you handle quotes and special characters?</h4>
+        <h3>How do you handle quotes and special characters?</h3>
         <p>Each format's escaping rules are respected. CSV wraps fields with commas, quotes, or newlines in double quotes. SQL escapes apostrophes by doubling them (<code>O''Brien</code>). YAML and XML use their standard escape mechanisms.</p>
       </div>
       <div class="faq-item">
-        <h4>Is anything uploaded?</h4>
+        <h3>Is anything uploaded?</h3>
         <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data.</p>
       </div>
       <div class="faq-item">
-        <h4>What about very large files?</h4>
+        <h3>What about very large files?</h3>
         <p>The tool handles multi-megabyte files but slows down past ~10,000 rows in the browser. For truly big data, use <code>jq</code> (for JSON), <code>csvkit</code> (for CSV), or write a script. <em>This tool is for quick flips, not giant ETL jobs.</em></p>
       </div>
       <div class="faq-item">
-        <h4>When should I pick JSON vs YAML vs TOML?</h4>
+        <h3>When should I pick JSON vs YAML vs TOML?</h3>
         <p>Short version: <em>JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are.</em> For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: <a href="/blog/json-yaml-toml/">JSON vs YAML vs TOML: when to use what</a>.</p>
       </div>
       <div class="faq-item">
-        <h4>Are there keyboard shortcuts?</h4>
+        <h3>Are there keyboard shortcuts?</h3>
         <p>Yes: <code>Ctrl/⌘+Enter</code> converts, <code>Ctrl/⌘+Shift+S</code> swaps the from/to formats, <code>Ctrl/⌘+Shift+L</code> copies a settings link, and <code>Esc</code> dismisses the toast. <em>Ctrl/⌘+K opens the site-wide command palette.</em></p>
       </div>
       <div class="faq-item">
-        <h4>What about XLSX?</h4>
+        <h3>What about XLSX?</h3>
         <p>Not yet. XLSX parsing would nearly double the page size because the format is essentially a zipped XML archive. For now, if you have an XLSX file, open it in a spreadsheet app and save as CSV first. <em>XLSX support is on the list for a future version.</em></p>
       </div>
     </div>
@@ -2017,15 +2034,29 @@ const DELIM_CHOICES = [
   { v: 'tab', label: 'Tab' },
 ];
 
+function setSourceError(message) {
+  const srcEl = $('#sourceInput');
+  const errEl = $('#sourceError');
+  if (message) {
+    errEl.textContent = message;
+    errEl.classList.add('show');
+    srcEl.setAttribute('aria-invalid', 'true');
+    srcEl.setAttribute('aria-describedby', 'sourceError');
+  } else {
+    errEl.classList.remove('show');
+    srcEl.removeAttribute('aria-invalid');
+    srcEl.removeAttribute('aria-describedby');
+  }
+}
+
 function convert() {
   const src = $('#sourceInput').value;
   state.source = src;
   const outEl = $('#outputArea');
-  const errEl = $('#sourceError');
 
   if (!src.trim()) {
     outEl.value = '';
-    errEl.classList.remove('show');
+    setSourceError(null);
     return;
   }
 
@@ -2033,19 +2064,17 @@ function convert() {
   try {
     data = PARSERS[state.from](src, state.opts);
   } catch (err) {
-    errEl.textContent = 'Parse error: ' + err.message;
-    errEl.classList.add('show');
+    setSourceError('Parse error: ' + err.message);
     outEl.value = '';
     return;
   }
-  errEl.classList.remove('show');
+  setSourceError(null);
 
   try {
     const out = SERIALIZERS[state.to](data, state.opts);
     outEl.value = out;
   } catch (err) {
-    errEl.textContent = 'Conversion error: ' + err.message;
-    errEl.classList.add('show');
+    setSourceError('Conversion error: ' + err.message);
     outEl.value = '';
   }
 }
