@@ -227,12 +227,34 @@ function loadPlaywright() {
     failures.push('delimiter option: semicolon csv did not parse via #opt-csvDelimiterIn');
   }
 
+  // Generated pair landing page: pair preselected, conversion live
+  const pairPage = await browser.newPage();
+  pairPage.on('pageerror', err => pageErrors.push('pair page: ' + err.message));
+  await pairPage.goto('file://' + path.join(__dirname, '..', 'csv-to-json', 'index.html'));
+  try {
+    await pairPage.waitForFunction(
+      () => document.querySelector('#fromSelect').value === 'csv' &&
+            document.querySelector('#toSelect').value === 'json',
+      undefined,
+      { timeout: 5000 }
+    );
+    await pairPage.fill('#sourceInput', 'id,name\n1,Ada');
+    await pairPage.waitForFunction(
+      () => document.querySelector('#outputArea').value.includes('"name": "Ada"'),
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('pair page: csv-to-json/index.html did not preselect or convert');
+  }
+  await pairPage.close();
+
   await browser.close();
 
   for (const f of failures) console.error('FAIL  ' + f);
   for (const e of pageErrors) console.error('PAGEERROR  ' + e);
   if (failures.length || pageErrors.length) process.exit(1);
-  console.log('SMOKE OK (13 cases)');
+  console.log('SMOKE OK (14 cases)');
 })().catch(err => {
   console.error(err);
   process.exit(1);

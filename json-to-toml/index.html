@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<!--
+  Format Flipper — convert between 12 data formats, entirely in your browser.
+  Part of the Tooly McToolface workshop · https://toolymctoolface.com/format/
+
+  Copyright (c) 2026 Tooly McToolface
+  Licensed under the MIT License. Full text:
+  https://github.com/J1E2M3/format-flipper/blob/main/LICENSE
+
+  This single file is the whole tool. Save it, fork it, keep it forever —
+  this notice travels with it.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-kUlqenZXWhUgOx924+n1jmxX7cQCJhp5rOer5BLbQ1Q='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<title>JSON to TOML Converter — Free, No Upload · Tooly McToolface</title>
+<meta name="description" content="Convert JSON to TOML free, in your browser — no upload, no account. Config-ready TOML with proper tables and typed values, instantly.">
+<meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
+
+<meta property="og:title" content="JSON to TOML Converter — free, in your browser">
+<meta property="og:description" content="JSON ⇄ YAML ⇄ CSV ⇄ XML ⇄ Markdown ⇄ HTML ⇄ SQL. Any format to any other. Free, in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/og-format.png">
+<meta property="og:url" content="https://toolymctoolface.com/format/json-to-toml/">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="canonical" href="https://toolymctoolface.com/format/json-to-toml/">
+<link rel="alternate" type="application/atom+xml" title="Tooly McToolface blog" href="/feed.xml">
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0E0D0B">
+
+<link rel="preload" as="font" type="font/woff2" href="../fonts/inter-normal-latin-6ab57b19.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="../fonts/fraunces-normal-latin-8f90dc37.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="../fonts/fraunces-italic-latin-c7622370.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="../fonts/jetbrains-mono-normal-latin-0a7197f9.woff2" crossorigin>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Format Flipper",
+  "description": "Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT statements.",
+  "url": "https://toolymctoolface.com/format/json-to-toml/",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any (browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "creator": { "@type": "Organization", "name": "Tooly McToolface", "url": "https://toolymctoolface.com" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Tooly McToolface", "item": "https://toolymctoolface.com" },
+    { "@type": "ListItem", "position": 2, "name": "Tools", "item": "https://toolymctoolface.com/#tools" },
+    { "@type": "ListItem", "position": 3, "name": "Format Flipper" }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can I convert between any two formats?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go JSON → TOML → SQL → YAML and back without losing anything (as long as the structure is tabular or JSON-compatible)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What's tabular data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "An array of objects that all share the same keys. Like a spreadsheet. CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape. NDJSON carries records naturally too — one JSON object per line. JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you handle quotes and special characters?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each format's escaping rules are respected. CSV wraps fields with commas, quotes, or newlines in double quotes. SQL escapes apostrophes by doubling them (O''Brien). YAML and XML use their standard escape mechanisms."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is anything uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. All parsing and serialization happens in your browser. Your data never leaves your device. Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What about very large files?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The tool handles multi-megabyte files but slows down past ~10,000 rows in the browser. For truly big data, use jq (for JSON), csvkit (for CSV), or write a script. This tool is for quick flips, not giant ETL jobs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When should I pick JSON vs YAML vs TOML?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Short version: JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are. For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: JSON vs YAML vs TOML: when to use what."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there keyboard shortcuts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes: Ctrl/⌘+Enter converts, Ctrl/⌘+Shift+S swaps the from/to formats, Ctrl/⌘+Shift+L copies a settings link, and Esc dismisses the toast. Ctrl/⌘+K opens the site-wide command palette."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What about XLSX?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not yet. XLSX parsing would nearly double the page size because the format is essentially a zipped XML archive. For now, if you have an XLSX file, open it in a spreadsheet app and save as CSV first. XLSX support is on the list for a future version."
+      }
+    }
+  ]
+}
+</script>
+
+<style>
+  /* Self-hosted fonts (latin subsets, mirrored from Google Fonts) — no third-party
+     font CDN call, consistent with the zero-external-dependency pitch. Font files
+     are licensed under the SIL Open Font License; see fonts/OFL.txt. */
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/fraunces-italic-latin-c7622370.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: italic;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/fraunces-italic-latin-c7622370.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Fraunces';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/jetbrains-mono-normal-latin-0a7197f9.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/jetbrains-mono-normal-latin-0a7197f9.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+
+  :root {
+    --bg: #0E0D0B;
+    --bg-soft: #151310;
+    --surface: #181613;
+    --surface-2: #1F1C18;
+    --border: #2A2621;
+    --border-strong: #3A342D;
+    --ink: #F2EDE4;
+    --ink-soft: #A69F93;
+    --ink-dim: #8F8779; /* ≥4.5:1 (WCAG AA) on --bg, --bg-soft, --surface, and --surface-2 */
+    --accent: #F4A940;
+    --accent-hover: #FFB85C;
+    --accent-dim: #B37E2C;
+    --pop: #F46B9A;
+    --success: #7CB07C;
+    --error: #D4766B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .skip-link {
+    position: absolute; left: -9999px; z-index: 100;
+    background: var(--accent); color: var(--bg);
+    padding: 10px 18px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  }
+  .skip-link:focus { left: 16px; top: 16px; }
+  html, body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0;
+    pointer-events: none; z-index: 1;
+    background-image: radial-gradient(circle at 1px 1px, rgba(242, 237, 228, 0.035) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+  a { color: inherit; text-decoration: none; }
+  .container {
+    max-width: 1400px; margin: 0 auto; padding: 0 24px;
+    position: relative; z-index: 2;
+  }
+  .tooly-mini { width: 32px; height: 32px; flex-shrink: 0; }
+
+  nav {
+    padding: 20px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .brand-name .mc { font-style: italic; color: var(--accent); font-weight: 400; }
+  .brand-sep {
+    color: var(--ink-dim); font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    margin-left: 4px;
+  }
+  .nav-right { display: flex; gap: 24px; align-items: center; }
+  .nav-link {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .nav-link:hover { color: var(--ink); }
+
+  .hero { padding: 48px 0 28px; max-width: 820px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--accent); }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-size: clamp(38px, 6vw, 64px);
+    line-height: 0.98; letter-spacing: -0.03em;
+    margin-bottom: 18px;
+  }
+  h1 .swash { font-weight: 400; font-style: italic; color: var(--accent); }
+  .hero p {
+    font-size: 16px; color: var(--ink-soft);
+    max-width: 620px; line-height: 1.55;
+  }
+  .hero p em {
+    color: var(--ink); font-family: 'Fraunces', serif;
+    font-style: italic; font-size: 18px;
+  }
+
+  /* ---- Format selector row ---- */
+  .format-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .format-picker {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+  }
+  .format-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .format-select {
+    flex: 1;
+    -webkit-appearance: none; appearance: none;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 8px 32px 8px 12px;
+    border-radius: 8px;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23F4A940' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color 0.15s;
+  }
+  .format-select:focus { border-color: var(--accent-dim); }
+
+  .swap-btn {
+    width: 48px; height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .swap-btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    transform: scale(1.05);
+  }
+  .swap-btn svg { width: 20px; height: 20px; }
+
+  /* ---- Workspace ---- */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+  }
+  .panel-head {
+    padding: 10px 14px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .panel-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover {
+    color: var(--ink); border-color: var(--border-strong);
+    background: var(--surface-2);
+  }
+  .icon-btn svg { width: 13px; height: 13px; }
+  .textarea {
+    flex: 1;
+    width: 100%;
+    resize: vertical;
+    background: var(--bg-soft);
+    color: var(--ink);
+    border: 0;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    outline: none;
+    min-height: 360px;
+  }
+  .textarea:focus { box-shadow: inset 0 0 0 2px var(--accent-dim); }
+  .textarea::placeholder { color: var(--ink-dim); }
+  .textarea[readonly] { color: var(--ink-soft); }
+
+  .error-line {
+    padding: 10px 14px;
+    background: rgba(212, 118, 107, 0.08);
+    border-top: 1px solid var(--border);
+    color: var(--error);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    display: none;
+  }
+  .error-line.show { display: block; }
+
+  /* ---- Options ---- */
+  .options {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    min-height: 56px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 24px;
+    align-items: center;
+  }
+  .options-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+  .options-empty {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-dim);
+  }
+  .opt-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .opt-group label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-dim);
+  }
+  .opt-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    min-width: 90px;
+  }
+  .opt-input:focus { border-color: var(--accent-dim); }
+  .opt-check {
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer; user-select: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .opt-check input { width: 14px; height: 14px; accent-color: var(--accent); }
+  .opt-select { min-width: 120px; cursor: pointer; }
+  .sample-chip:focus-visible, .icon-btn:focus-visible, .swap-btn:focus-visible,
+  .format-select:focus-visible, .textarea:focus-visible, .opt-input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  /* ---- Samples row ---- */
+  .samples-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+  .samples-row-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-right: 4px;
+  }
+  .sample-chip {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--ink-soft);
+    transition: all 0.15s;
+  }
+  .sample-chip:hover { border-color: var(--accent-dim); color: var(--ink); background: var(--surface-2); }
+
+  /* ---- FAQ ---- */
+  .education {
+    padding: 72px 0;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 48px;
+  }
+  .education h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 40px; font-weight: 500;
+    letter-spacing: -0.03em; line-height: 1;
+  }
+  .education h2 .swash { font-style: italic; color: var(--accent); font-weight: 400; }
+  .faq-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 24px 32px;
+  }
+  .faq-item h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 17px; font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .faq-item p {
+    color: var(--ink-soft);
+    font-size: 14px; line-height: 1.55;
+  }
+  .faq-item p em {
+    font-family: 'Fraunces', serif;
+    font-style: italic; color: var(--pop);
+  }
+  .faq-item code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--bg);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface); color: var(--ink);
+    padding: 12px 20px; border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    font-size: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    transition: transform 0.3s;
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    background: var(--bg-soft);
+  }
+  .foot-row {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .foot-row em {
+    font-family: 'Fraunces', serif; font-style: italic;
+    color: var(--accent); text-transform: none;
+    font-size: 13px; letter-spacing: 0;
+  }
+  .foot-links { display: flex; gap: 20px; flex-wrap: wrap; }
+  .foot-links a { color: var(--ink-soft); }
+  .foot-links a:hover { color: var(--accent); }
+
+  @media (max-width: 900px) {
+    .format-row { grid-template-columns: 1fr; gap: 8px; }
+    .workspace { grid-template-columns: 1fr; }
+    .education { grid-template-columns: 1fr; gap: 24px; }
+    .faq-grid { grid-template-columns: 1fr; }
+    .swap-btn { transform: rotate(90deg); justify-self: center; }
+    .swap-btn:hover { transform: rotate(90deg) scale(1.05); }
+  }
+</style>
+<script defer src="/commandk.js"></script>
+<!-- SRI pin: if Plausible redeploys this script the browser refuses to run it
+     (analytics stop, the tool keeps working). Refresh deliberately with:
+     curl -s https://plausible.io/js/script.outbound-links.js | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script defer data-domain="toolymctoolface.com" src="https://plausible.io/js/script.outbound-links.js" integrity="sha384-lnP8QtLFKzqZ7DRBlL06WjW/+zvVEoeyx2yeyF1TybVJKZW+FguErL7q5IizQyqD" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#converter">Skip to converter</a>
+
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <symbol id="tooly-mini-sym" viewBox="0 0 36 36">
+      <rect x="5" y="8" width="26" height="24" rx="6" fill="#F4A940"/>
+      <rect x="13" y="4" width="10" height="6" rx="2" fill="none" stroke="#F4A940" stroke-width="2"/>
+      <circle cx="13" cy="18" r="1.5" fill="#0E0D0B"/>
+      <circle cx="23" cy="18" r="1.5" fill="#0E0D0B"/>
+      <path d="M 14 24 Q 18 27 22 24" stroke="#0E0D0B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="container">
+  <nav>
+    <a href="/" class="brand">
+      <svg class="tooly-mini"><use href="#tooly-mini-sym"/></svg>
+      <span class="brand-name">Tooly <span class="mc">McToolface</span></span>
+      <span class="brand-sep">/ format flipper</span>
+    </a>
+    <div class="nav-right">
+      <a href="/" class="nav-link">All tools</a>
+      <a href="#faq" class="nav-link">Tips</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">Format Flipper · JSON → TOML · <a href="../">all 132 directions</a></div>
+    <h1>JSON to TOML, <span class="swash">flipped.</span></h1>
+    <p>Paste JSON, get config-ready TOML — instantly, entirely in your browser. <em>Your data never leaves your device.</em></p>
+  </section>
+
+  <main id="converter">
+  <h2 class="visually-hidden">Convert your data</h2>
+  <div class="format-row">
+    <div class="format-picker">
+      <span class="format-label">From</span>
+      <select class="format-select" id="fromSelect" aria-label="Convert from format">
+        <option value="json" selected>JSON</option>
+        <option value="ndjson">NDJSON</option>
+        <option value="yaml">YAML</option>
+        <option value="toml">TOML</option>
+        <option value="ini">INI</option>
+        <option value="properties">.properties</option>
+        <option value="csv">CSV</option>
+        <option value="tsv">TSV</option>
+        <option value="xml">XML</option>
+        <option value="md">Markdown table</option>
+        <option value="html">HTML table</option>
+        <option value="sql">SQL INSERT</option>
+      </select>
+    </div>
+    <button class="swap-btn" id="swapBtn" title="Swap from/to" aria-label="Swap from/to">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></svg>
+    </button>
+    <div class="format-picker">
+      <span class="format-label">To</span>
+      <select class="format-select" id="toSelect" aria-label="Convert to format">
+        <option value="json">JSON</option>
+        <option value="ndjson">NDJSON</option>
+        <option value="yaml">YAML</option>
+        <option value="toml" selected>TOML</option>
+        <option value="ini">INI</option>
+        <option value="properties">.properties</option>
+        <option value="csv">CSV</option>
+        <option value="tsv">TSV</option>
+        <option value="xml">XML</option>
+        <option value="md">Markdown table</option>
+        <option value="html">HTML table</option>
+        <option value="sql">SQL INSERT</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title" id="sourceHeadTitle">Source · JSON</span>
+        <div class="panel-actions">
+          <button class="icon-btn" id="pasteBtn" title="Paste from clipboard" aria-label="Paste">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+          <button class="icon-btn" id="clearBtn" title="Clear" aria-label="Clear">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <textarea class="textarea" id="sourceInput" aria-label="Source data" placeholder="Paste your data here…" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+      <div class="error-line" id="sourceError" role="alert"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title" id="outputHeadTitle">Output · TOML</span>
+        <div class="panel-actions">
+          <button class="icon-btn" id="copyBtn" title="Copy output" aria-label="Copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+          <button class="icon-btn" id="downloadBtn" title="Download output" aria-label="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          </button>
+        </div>
+      </div>
+      <textarea class="textarea" id="outputArea" aria-label="Converted output" aria-live="polite" readonly placeholder="Output appears here…" spellcheck="false"></textarea>
+    </div>
+  </div>
+
+  <div class="options">
+    <span class="options-label">Options</span>
+    <div id="optionsBody" style="display: flex; gap: 14px 24px; flex-wrap: wrap; align-items: center; flex: 1;">
+      <span class="options-empty">—</span>
+    </div>
+    <button class="sample-chip" id="shareBtn" title="Copy a link to these settings">Copy settings link</button>
+  </div>
+
+  <div class="samples-row">
+    <span class="samples-row-label">Samples:</span>
+    <button class="sample-chip" data-sample="users">Users table</button>
+    <button class="sample-chip" data-sample="products">Products catalog</button>
+    <button class="sample-chip" data-sample="config">Config</button>
+    <button class="sample-chip" data-sample="tasks">Tasks list</button>
+    <button class="sample-chip" data-sample="logs">Server logs</button>
+    <button class="sample-chip" data-sample="settings">App settings</button>
+  </div>
+  </main>
+
+  <section class="education">
+    <h2>JSON → TOML, <span class="swash">specifically.</span></h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3>Objects become tables</h3>
+        <p>Top-level scalar keys serialize first, then nested objects become <code>[table]</code> sections and arrays of objects become <code>[[array-of-tables]]</code> — idiomatic TOML, not a JSON dump with different punctuation.</p>
+      </div>
+      <div class="faq-item">
+        <h3>One shape restriction</h3>
+        <p>TOML requires a top-level table, so a bare JSON array like <code>[1, 2, 3]</code> can&rsquo;t become a TOML document — the converter says so explicitly instead of inventing a wrapper key.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="education">
+    <h2>Formats, <span class="swash">explained.</span></h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3>Can I convert between any two formats?</h3>
+        <p>Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go <code>JSON → TOML → SQL → YAML</code> and back without losing anything (as long as the structure is tabular or JSON-compatible).</p>
+      </div>
+      <div class="faq-item">
+        <h3>What's tabular data?</h3>
+        <p>An array of objects that all share the same keys. Like a spreadsheet. <em>CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape.</em> NDJSON carries records naturally too — one JSON object per line. JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected.</p>
+      </div>
+      <div class="faq-item">
+        <h3>How do you handle quotes and special characters?</h3>
+        <p>Each format's escaping rules are respected. CSV wraps fields with commas, quotes, or newlines in double quotes. SQL escapes apostrophes by doubling them (<code>O''Brien</code>). YAML and XML use their standard escape mechanisms.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Is anything uploaded?</h3>
+        <p>No. All parsing and serialization happens in your browser. <em>Your data never leaves your device.</em> Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What about very large files?</h3>
+        <p>The tool handles multi-megabyte files but slows down past ~10,000 rows in the browser. For truly big data, use <code>jq</code> (for JSON), <code>csvkit</code> (for CSV), or write a script. <em>This tool is for quick flips, not giant ETL jobs.</em></p>
+      </div>
+      <div class="faq-item">
+        <h3>When should I pick JSON vs YAML vs TOML?</h3>
+        <p>Short version: <em>JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are.</em> For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: <a href="/blog/json-yaml-toml/">JSON vs YAML vs TOML: when to use what</a>.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Are there keyboard shortcuts?</h3>
+        <p>Yes: <code>Ctrl/⌘+Enter</code> converts, <code>Ctrl/⌘+Shift+S</code> swaps the from/to formats, <code>Ctrl/⌘+Shift+L</code> copies a settings link, and <code>Esc</code> dismisses the toast. <em>Ctrl/⌘+K opens the site-wide command palette.</em></p>
+      </div>
+      <div class="faq-item">
+        <h3>What about XLSX?</h3>
+        <p>Not yet. XLSX parsing would nearly double the page size because the format is essentially a zipped XML archive. For now, if you have an XLSX file, open it in a spreadsheet app and save as CSV first. <em>XLSX support is on the list for a future version.</em></p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-row">
+      <div>© 2026 · Tooly McToolface · <em>made with love</em></div>
+      <div class="foot-links">
+        <a href="/">All tools</a>
+        <a href="/compress/">Image Smusher</a>
+        <a href="/heic/">HEIC Unheicer</a>
+        <a href="/json/">JSON Fixer</a>
+        <a href="/color/">Color Grabber</a>
+        <a href="/svg/">SVG Shrinker</a>
+        <a href="/regex/">Regex Rambler</a>
+        <a href="/qr/">QR Maker</a>
+        <a href="/favicon/">Favicon Foundry</a>
+        <a href="/diff/">Diff Checker</a>
+        <a href="/time/">Timestamp Converter</a>
+        <a href="/blog/">Blog</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/about/">About</a>
+        <a href="../privacy.html">Privacy</a>
+        <a href="../terms.html">Terms</a>
+        <a href="../accessibility.html">Accessibility</a>
+        <a href="https://github.com/J1E2M3/format-flipper" rel="noopener">Source &amp; support</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ===========================================================
+     js-yaml 4.1.1 — MIT license
+     https://github.com/nodeca/js-yaml
+     Bundled inline (~39KB)
+     =========================================================== -->
+<script>
+/*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
+!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).jsyaml={})}(this,function(e){"use strict";function t(e){return null==e}var n={isNothing:t,isObject:function(e){return"object"==typeof e&&null!==e},toArray:function(e){return Array.isArray(e)?e:t(e)?[]:[e]},repeat:function(e,t){var n,i="";for(n=0;n<t;n+=1)i+=e;return i},isNegativeZero:function(e){return 0===e&&Number.NEGATIVE_INFINITY===1/e},extend:function(e,t){var n,i,r,o;if(t)for(n=0,i=(o=Object.keys(t)).length;n<i;n+=1)e[r=o[n]]=t[r];return e}};function i(e,t){var n="",i=e.reason||"(unknown reason)";return e.mark?(e.mark.name&&(n+='in "'+e.mark.name+'" '),n+="("+(e.mark.line+1)+":"+(e.mark.column+1)+")",!t&&e.mark.snippet&&(n+="\n\n"+e.mark.snippet),i+" "+n):i}function r(e,t){Error.call(this),this.name="YAMLException",this.reason=e,this.mark=t,this.message=i(this,!1),Error.captureStackTrace?Error.captureStackTrace(this,this.constructor):this.stack=(new Error).stack||""}r.prototype=Object.create(Error.prototype),r.prototype.constructor=r,r.prototype.toString=function(e){return this.name+": "+i(this,e)};var o=r;function a(e,t,n,i,r){var o="",a="",l=Math.floor(r/2)-1;return i-t>l&&(t=i-l+(o=" ... ").length),n-i>l&&(n=i+l-(a=" ...").length),{str:o+e.slice(t,n).replace(/\t/g,"→")+a,pos:i-t+o.length}}function l(e,t){return n.repeat(" ",t-e.length)+e}var c=function(e,t){if(t=Object.create(t||null),!e.buffer)return null;t.maxLength||(t.maxLength=79),"number"!=typeof t.indent&&(t.indent=1),"number"!=typeof t.linesBefore&&(t.linesBefore=3),"number"!=typeof t.linesAfter&&(t.linesAfter=2);for(var i,r=/\r?\n|\r|\0/g,o=[0],c=[],s=-1;i=r.exec(e.buffer);)c.push(i.index),o.push(i.index+i[0].length),e.position<=i.index&&s<0&&(s=o.length-2);s<0&&(s=o.length-1);var u,p,f="",d=Math.min(e.line+t.linesAfter,c.length).toString().length,h=t.maxLength-(t.indent+d+3);for(u=1;u<=t.linesBefore&&!(s-u<0);u++)p=a(e.buffer,o[s-u],c[s-u],e.position-(o[s]-o[s-u]),h),f=n.repeat(" ",t.indent)+l((e.line-u+1).toString(),d)+" | "+p.str+"\n"+f;for(p=a(e.buffer,o[s],c[s],e.position,h),f+=n.repeat(" ",t.indent)+l((e.line+1).toString(),d)+" | "+p.str+"\n",f+=n.repeat("-",t.indent+d+3+p.pos)+"^\n",u=1;u<=t.linesAfter&&!(s+u>=c.length);u++)p=a(e.buffer,o[s+u],c[s+u],e.position-(o[s]-o[s+u]),h),f+=n.repeat(" ",t.indent)+l((e.line+u+1).toString(),d)+" | "+p.str+"\n";return f.replace(/\n$/,"")},s=["kind","multi","resolve","construct","instanceOf","predicate","represent","representName","defaultStyle","styleAliases"],u=["scalar","sequence","mapping"];var p=function(e,t){if(t=t||{},Object.keys(t).forEach(function(t){if(-1===s.indexOf(t))throw new o('Unknown option "'+t+'" is met in definition of "'+e+'" YAML type.')}),this.options=t,this.tag=e,this.kind=t.kind||null,this.resolve=t.resolve||function(){return!0},this.construct=t.construct||function(e){return e},this.instanceOf=t.instanceOf||null,this.predicate=t.predicate||null,this.represent=t.represent||null,this.representName=t.representName||null,this.defaultStyle=t.defaultStyle||null,this.multi=t.multi||!1,this.styleAliases=function(e){var t={};return null!==e&&Object.keys(e).forEach(function(n){e[n].forEach(function(e){t[String(e)]=n})}),t}(t.styleAliases||null),-1===u.indexOf(this.kind))throw new o('Unknown kind "'+this.kind+'" is specified for "'+e+'" YAML type.')};function f(e,t){var n=[];return e[t].forEach(function(e){var t=n.length;n.forEach(function(n,i){n.tag===e.tag&&n.kind===e.kind&&n.multi===e.multi&&(t=i)}),n[t]=e}),n}function d(e){return this.extend(e)}d.prototype.extend=function(e){var t=[],n=[];if(e instanceof p)n.push(e);else if(Array.isArray(e))n=n.concat(e);else{if(!e||!Array.isArray(e.implicit)&&!Array.isArray(e.explicit))throw new o("Schema.extend argument should be a Type, [ Type ], or a schema definition ({ implicit: [...], explicit: [...] })");e.implicit&&(t=t.concat(e.implicit)),e.explicit&&(n=n.concat(e.explicit))}t.forEach(function(e){if(!(e instanceof p))throw new o("Specified list of YAML types (or a single Type object) contains a non-Type object.");if(e.loadKind&&"scalar"!==e.loadKind)throw new o("There is a non-scalar type in the implicit list of a schema. Implicit resolving of such types is not supported.");if(e.multi)throw new o("There is a multi type in the implicit list of a schema. Multi tags can only be listed as explicit.")}),n.forEach(function(e){if(!(e instanceof p))throw new o("Specified list of YAML types (or a single Type object) contains a non-Type object.")});var i=Object.create(d.prototype);return i.implicit=(this.implicit||[]).concat(t),i.explicit=(this.explicit||[]).concat(n),i.compiledImplicit=f(i,"implicit"),i.compiledExplicit=f(i,"explicit"),i.compiledTypeMap=function(){var e,t,n={scalar:{},sequence:{},mapping:{},fallback:{},multi:{scalar:[],sequence:[],mapping:[],fallback:[]}};function i(e){e.multi?(n.multi[e.kind].push(e),n.multi.fallback.push(e)):n[e.kind][e.tag]=n.fallback[e.tag]=e}for(e=0,t=arguments.length;e<t;e+=1)arguments[e].forEach(i);return n}(i.compiledImplicit,i.compiledExplicit),i};var h=d,g=new p("tag:yaml.org,2002:str",{kind:"scalar",construct:function(e){return null!==e?e:""}}),m=new p("tag:yaml.org,2002:seq",{kind:"sequence",construct:function(e){return null!==e?e:[]}}),y=new p("tag:yaml.org,2002:map",{kind:"mapping",construct:function(e){return null!==e?e:{}}}),b=new h({explicit:[g,m,y]});var A=new p("tag:yaml.org,2002:null",{kind:"scalar",resolve:function(e){if(null===e)return!0;var t=e.length;return 1===t&&"~"===e||4===t&&("null"===e||"Null"===e||"NULL"===e)},construct:function(){return null},predicate:function(e){return null===e},represent:{canonical:function(){return"~"},lowercase:function(){return"null"},uppercase:function(){return"NULL"},camelcase:function(){return"Null"},empty:function(){return""}},defaultStyle:"lowercase"});var v=new p("tag:yaml.org,2002:bool",{kind:"scalar",resolve:function(e){if(null===e)return!1;var t=e.length;return 4===t&&("true"===e||"True"===e||"TRUE"===e)||5===t&&("false"===e||"False"===e||"FALSE"===e)},construct:function(e){return"true"===e||"True"===e||"TRUE"===e},predicate:function(e){return"[object Boolean]"===Object.prototype.toString.call(e)},represent:{lowercase:function(e){return e?"true":"false"},uppercase:function(e){return e?"TRUE":"FALSE"},camelcase:function(e){return e?"True":"False"}},defaultStyle:"lowercase"});function w(e){return 48<=e&&e<=57||65<=e&&e<=70||97<=e&&e<=102}function k(e){return 48<=e&&e<=55}function C(e){return 48<=e&&e<=57}var x=new p("tag:yaml.org,2002:int",{kind:"scalar",resolve:function(e){if(null===e)return!1;var t,n=e.length,i=0,r=!1;if(!n)return!1;if("-"!==(t=e[i])&&"+"!==t||(t=e[++i]),"0"===t){if(i+1===n)return!0;if("b"===(t=e[++i])){for(i++;i<n;i++)if("_"!==(t=e[i])){if("0"!==t&&"1"!==t)return!1;r=!0}return r&&"_"!==t}if("x"===t){for(i++;i<n;i++)if("_"!==(t=e[i])){if(!w(e.charCodeAt(i)))return!1;r=!0}return r&&"_"!==t}if("o"===t){for(i++;i<n;i++)if("_"!==(t=e[i])){if(!k(e.charCodeAt(i)))return!1;r=!0}return r&&"_"!==t}}if("_"===t)return!1;for(;i<n;i++)if("_"!==(t=e[i])){if(!C(e.charCodeAt(i)))return!1;r=!0}return!(!r||"_"===t)},construct:function(e){var t,n=e,i=1;if(-1!==n.indexOf("_")&&(n=n.replace(/_/g,"")),"-"!==(t=n[0])&&"+"!==t||("-"===t&&(i=-1),t=(n=n.slice(1))[0]),"0"===n)return 0;if("0"===t){if("b"===n[1])return i*parseInt(n.slice(2),2);if("x"===n[1])return i*parseInt(n.slice(2),16);if("o"===n[1])return i*parseInt(n.slice(2),8)}return i*parseInt(n,10)},predicate:function(e){return"[object Number]"===Object.prototype.toString.call(e)&&e%1==0&&!n.isNegativeZero(e)},represent:{binary:function(e){return e>=0?"0b"+e.toString(2):"-0b"+e.toString(2).slice(1)},octal:function(e){return e>=0?"0o"+e.toString(8):"-0o"+e.toString(8).slice(1)},decimal:function(e){return e.toString(10)},hexadecimal:function(e){return e>=0?"0x"+e.toString(16).toUpperCase():"-0x"+e.toString(16).toUpperCase().slice(1)}},defaultStyle:"decimal",styleAliases:{binary:[2,"bin"],octal:[8,"oct"],decimal:[10,"dec"],hexadecimal:[16,"hex"]}}),I=new RegExp("^(?:[-+]?(?:[0-9][0-9_]*)(?:\\.[0-9_]*)?(?:[eE][-+]?[0-9]+)?|\\.[0-9_]+(?:[eE][-+]?[0-9]+)?|[-+]?\\.(?:inf|Inf|INF)|\\.(?:nan|NaN|NAN))$");var S=/^[-+]?[0-9]+e/;var O=new p("tag:yaml.org,2002:float",{kind:"scalar",resolve:function(e){return null!==e&&!(!I.test(e)||"_"===e[e.length-1])},construct:function(e){var t,n;return n="-"===(t=e.replace(/_/g,"").toLowerCase())[0]?-1:1,"+-".indexOf(t[0])>=0&&(t=t.slice(1)),".inf"===t?1===n?Number.POSITIVE_INFINITY:Number.NEGATIVE_INFINITY:".nan"===t?NaN:n*parseFloat(t,10)},predicate:function(e){return"[object Number]"===Object.prototype.toString.call(e)&&(e%1!=0||n.isNegativeZero(e))},represent:function(e,t){var i;if(isNaN(e))switch(t){case"lowercase":return".nan";case"uppercase":return".NAN";case"camelcase":return".NaN"}else if(Number.POSITIVE_INFINITY===e)switch(t){case"lowercase":return".inf";case"uppercase":return".INF";case"camelcase":return".Inf"}else if(Number.NEGATIVE_INFINITY===e)switch(t){case"lowercase":return"-.inf";case"uppercase":return"-.INF";case"camelcase":return"-.Inf"}else if(n.isNegativeZero(e))return"-0.0";return i=e.toString(10),S.test(i)?i.replace("e",".e"):i},defaultStyle:"lowercase"}),j=b.extend({implicit:[A,v,x,O]}),T=j,N=new RegExp("^([0-9][0-9][0-9][0-9])-([0-9][0-9])-([0-9][0-9])$"),F=new RegExp("^([0-9][0-9][0-9][0-9])-([0-9][0-9]?)-([0-9][0-9]?)(?:[Tt]|[ \\t]+)([0-9][0-9]?):([0-9][0-9]):([0-9][0-9])(?:\\.([0-9]*))?(?:[ \\t]*(Z|([-+])([0-9][0-9]?)(?::([0-9][0-9]))?))?$");var E=new p("tag:yaml.org,2002:timestamp",{kind:"scalar",resolve:function(e){return null!==e&&(null!==N.exec(e)||null!==F.exec(e))},construct:function(e){var t,n,i,r,o,a,l,c,s=0,u=null;if(null===(t=N.exec(e))&&(t=F.exec(e)),null===t)throw new Error("Date resolve error");if(n=+t[1],i=+t[2]-1,r=+t[3],!t[4])return new Date(Date.UTC(n,i,r));if(o=+t[4],a=+t[5],l=+t[6],t[7]){for(s=t[7].slice(0,3);s.length<3;)s+="0";s=+s}return t[9]&&(u=6e4*(60*+t[10]+ +(t[11]||0)),"-"===t[9]&&(u=-u)),c=new Date(Date.UTC(n,i,r,o,a,l,s)),u&&c.setTime(c.getTime()-u),c},instanceOf:Date,represent:function(e){return e.toISOString()}});var M=new p("tag:yaml.org,2002:merge",{kind:"scalar",resolve:function(e){return"<<"===e||null===e}}),L="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r";var _=new p("tag:yaml.org,2002:binary",{kind:"scalar",resolve:function(e){if(null===e)return!1;var t,n,i=0,r=e.length,o=L;for(n=0;n<r;n++)if(!((t=o.indexOf(e.charAt(n)))>64)){if(t<0)return!1;i+=6}return i%8==0},construct:function(e){var t,n,i=e.replace(/[\r\n=]/g,""),r=i.length,o=L,a=0,l=[];for(t=0;t<r;t++)t%4==0&&t&&(l.push(a>>16&255),l.push(a>>8&255),l.push(255&a)),a=a<<6|o.indexOf(i.charAt(t));return 0===(n=r%4*6)?(l.push(a>>16&255),l.push(a>>8&255),l.push(255&a)):18===n?(l.push(a>>10&255),l.push(a>>2&255)):12===n&&l.push(a>>4&255),new Uint8Array(l)},predicate:function(e){return"[object Uint8Array]"===Object.prototype.toString.call(e)},represent:function(e){var t,n,i="",r=0,o=e.length,a=L;for(t=0;t<o;t++)t%3==0&&t&&(i+=a[r>>18&63],i+=a[r>>12&63],i+=a[r>>6&63],i+=a[63&r]),r=(r<<8)+e[t];return 0===(n=o%3)?(i+=a[r>>18&63],i+=a[r>>12&63],i+=a[r>>6&63],i+=a[63&r]):2===n?(i+=a[r>>10&63],i+=a[r>>4&63],i+=a[r<<2&63],i+=a[64]):1===n&&(i+=a[r>>2&63],i+=a[r<<4&63],i+=a[64],i+=a[64]),i}}),D=Object.prototype.hasOwnProperty,U=Object.prototype.toString;var q=new p("tag:yaml.org,2002:omap",{kind:"sequence",resolve:function(e){if(null===e)return!0;var t,n,i,r,o,a=[],l=e;for(t=0,n=l.length;t<n;t+=1){if(i=l[t],o=!1,"[object Object]"!==U.call(i))return!1;for(r in i)if(D.call(i,r)){if(o)return!1;o=!0}if(!o)return!1;if(-1!==a.indexOf(r))return!1;a.push(r)}return!0},construct:function(e){return null!==e?e:[]}}),Y=Object.prototype.toString;var R=new p("tag:yaml.org,2002:pairs",{kind:"sequence",resolve:function(e){if(null===e)return!0;var t,n,i,r,o,a=e;for(o=new Array(a.length),t=0,n=a.length;t<n;t+=1){if(i=a[t],"[object Object]"!==Y.call(i))return!1;if(1!==(r=Object.keys(i)).length)return!1;o[t]=[r[0],i[r[0]]]}return!0},construct:function(e){if(null===e)return[];var t,n,i,r,o,a=e;for(o=new Array(a.length),t=0,n=a.length;t<n;t+=1)i=a[t],r=Object.keys(i),o[t]=[r[0],i[r[0]]];return o}}),B=Object.prototype.hasOwnProperty;var K=new p("tag:yaml.org,2002:set",{kind:"mapping",resolve:function(e){if(null===e)return!0;var t,n=e;for(t in n)if(B.call(n,t)&&null!==n[t])return!1;return!0},construct:function(e){return null!==e?e:{}}}),P=T.extend({implicit:[E,M],explicit:[_,q,R,K]}),W=Object.prototype.hasOwnProperty,H=/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/,$=/[\x85\u2028\u2029]/,G=/[,\[\]\{\}]/,V=/^(?:!|!!|![a-z\-]+!)$/i,Z=/^(?:!|[^,\[\]\{\}])(?:%[0-9a-f]{2}|[0-9a-z\-#;\/\?:@&=\+\$,_\.!~\*'\(\)\[\]])*$/i;function J(e){return Object.prototype.toString.call(e)}function Q(e){return 10===e||13===e}function z(e){return 9===e||32===e}function X(e){return 9===e||32===e||10===e||13===e}function ee(e){return 44===e||91===e||93===e||123===e||125===e}function te(e){var t;return 48<=e&&e<=57?e-48:97<=(t=32|e)&&t<=102?t-97+10:-1}function ne(e){return 120===e?2:117===e?4:85===e?8:0}function ie(e){return 48<=e&&e<=57?e-48:-1}function re(e){return 48===e?"\0":97===e?"":98===e?"\b":116===e||9===e?"\t":110===e?"\n":118===e?"\v":102===e?"\f":114===e?"\r":101===e?"":32===e?" ":34===e?'"':47===e?"/":92===e?"\\":78===e?"":95===e?" ":76===e?"\u2028":80===e?"\u2029":""}function oe(e){return e<=65535?String.fromCharCode(e):String.fromCharCode(55296+(e-65536>>10),56320+(e-65536&1023))}function ae(e,t,n){"__proto__"===t?Object.defineProperty(e,t,{configurable:!0,enumerable:!0,writable:!0,value:n}):e[t]=n}for(var le=new Array(256),ce=new Array(256),se=0;se<256;se++)le[se]=re(se)?1:0,ce[se]=re(se);function ue(e,t){this.input=e,this.filename=t.filename||null,this.schema=t.schema||P,this.onWarning=t.onWarning||null,this.legacy=t.legacy||!1,this.json=t.json||!1,this.listener=t.listener||null,this.implicitTypes=this.schema.compiledImplicit,this.typeMap=this.schema.compiledTypeMap,this.length=e.length,this.position=0,this.line=0,this.lineStart=0,this.lineIndent=0,this.firstTabInLine=-1,this.documents=[]}function pe(e,t){var n={name:e.filename,buffer:e.input.slice(0,-1),position:e.position,line:e.line,column:e.position-e.lineStart};return n.snippet=c(n),new o(t,n)}function fe(e,t){throw pe(e,t)}function de(e,t){e.onWarning&&e.onWarning.call(null,pe(e,t))}var he={YAML:function(e,t,n){var i,r,o;null!==e.version&&fe(e,"duplication of %YAML directive"),1!==n.length&&fe(e,"YAML directive accepts exactly one argument"),null===(i=/^([0-9]+)\.([0-9]+)$/.exec(n[0]))&&fe(e,"ill-formed argument of the YAML directive"),r=parseInt(i[1],10),o=parseInt(i[2],10),1!==r&&fe(e,"unacceptable YAML version of the document"),e.version=n[0],e.checkLineBreaks=o<2,1!==o&&2!==o&&de(e,"unsupported YAML version of the document")},TAG:function(e,t,n){var i,r;2!==n.length&&fe(e,"TAG directive accepts exactly two arguments"),i=n[0],r=n[1],V.test(i)||fe(e,"ill-formed tag handle (first argument) of the TAG directive"),W.call(e.tagMap,i)&&fe(e,'there is a previously declared suffix for "'+i+'" tag handle'),Z.test(r)||fe(e,"ill-formed tag prefix (second argument) of the TAG directive");try{r=decodeURIComponent(r)}catch(t){fe(e,"tag prefix is malformed: "+r)}e.tagMap[i]=r}};function ge(e,t,n,i){var r,o,a,l;if(t<n){if(l=e.input.slice(t,n),i)for(r=0,o=l.length;r<o;r+=1)9===(a=l.charCodeAt(r))||32<=a&&a<=1114111||fe(e,"expected valid JSON character");else H.test(l)&&fe(e,"the stream contains non-printable characters");e.result+=l}}function me(e,t,i,r){var o,a,l,c;for(n.isObject(i)||fe(e,"cannot merge mappings; the provided source object is unacceptable"),l=0,c=(o=Object.keys(i)).length;l<c;l+=1)a=o[l],W.call(t,a)||(ae(t,a,i[a]),r[a]=!0)}function ye(e,t,n,i,r,o,a,l,c){var s,u;if(Array.isArray(r))for(s=0,u=(r=Array.prototype.slice.call(r)).length;s<u;s+=1)Array.isArray(r[s])&&fe(e,"nested arrays are not supported inside keys"),"object"==typeof r&&"[object Object]"===J(r[s])&&(r[s]="[object Object]");if("object"==typeof r&&"[object Object]"===J(r)&&(r="[object Object]"),r=String(r),null===t&&(t={}),"tag:yaml.org,2002:merge"===i)if(Array.isArray(o))for(s=0,u=o.length;s<u;s+=1)me(e,t,o[s],n);else me(e,t,o,n);else e.json||W.call(n,r)||!W.call(t,r)||(e.line=a||e.line,e.lineStart=l||e.lineStart,e.position=c||e.position,fe(e,"duplicated mapping key")),ae(t,r,o),delete n[r];return t}function be(e){var t;10===(t=e.input.charCodeAt(e.position))?e.position++:13===t?(e.position++,10===e.input.charCodeAt(e.position)&&e.position++):fe(e,"a line break is expected"),e.line+=1,e.lineStart=e.position,e.firstTabInLine=-1}function Ae(e,t,n){for(var i=0,r=e.input.charCodeAt(e.position);0!==r;){for(;z(r);)9===r&&-1===e.firstTabInLine&&(e.firstTabInLine=e.position),r=e.input.charCodeAt(++e.position);if(t&&35===r)do{r=e.input.charCodeAt(++e.position)}while(10!==r&&13!==r&&0!==r);if(!Q(r))break;for(be(e),r=e.input.charCodeAt(e.position),i++,e.lineIndent=0;32===r;)e.lineIndent++,r=e.input.charCodeAt(++e.position)}return-1!==n&&0!==i&&e.lineIndent<n&&de(e,"deficient indentation"),i}function ve(e){var t,n=e.position;return!(45!==(t=e.input.charCodeAt(n))&&46!==t||t!==e.input.charCodeAt(n+1)||t!==e.input.charCodeAt(n+2)||(n+=3,0!==(t=e.input.charCodeAt(n))&&!X(t)))}function we(e,t){1===t?e.result+=" ":t>1&&(e.result+=n.repeat("\n",t-1))}function ke(e,t){var n,i,r=e.tag,o=e.anchor,a=[],l=!1;if(-1!==e.firstTabInLine)return!1;for(null!==e.anchor&&(e.anchorMap[e.anchor]=a),i=e.input.charCodeAt(e.position);0!==i&&(-1!==e.firstTabInLine&&(e.position=e.firstTabInLine,fe(e,"tab characters must not be used in indentation")),45===i)&&X(e.input.charCodeAt(e.position+1));)if(l=!0,e.position++,Ae(e,!0,-1)&&e.lineIndent<=t)a.push(null),i=e.input.charCodeAt(e.position);else if(n=e.line,Ie(e,t,3,!1,!0),a.push(e.result),Ae(e,!0,-1),i=e.input.charCodeAt(e.position),(e.line===n||e.lineIndent>t)&&0!==i)fe(e,"bad indentation of a sequence entry");else if(e.lineIndent<t)break;return!!l&&(e.tag=r,e.anchor=o,e.kind="sequence",e.result=a,!0)}function Ce(e){var t,n,i,r,o=!1,a=!1;if(33!==(r=e.input.charCodeAt(e.position)))return!1;if(null!==e.tag&&fe(e,"duplication of a tag property"),60===(r=e.input.charCodeAt(++e.position))?(o=!0,r=e.input.charCodeAt(++e.position)):33===r?(a=!0,n="!!",r=e.input.charCodeAt(++e.position)):n="!",t=e.position,o){do{r=e.input.charCodeAt(++e.position)}while(0!==r&&62!==r);e.position<e.length?(i=e.input.slice(t,e.position),r=e.input.charCodeAt(++e.position)):fe(e,"unexpected end of the stream within a verbatim tag")}else{for(;0!==r&&!X(r);)33===r&&(a?fe(e,"tag suffix cannot contain exclamation marks"):(n=e.input.slice(t-1,e.position+1),V.test(n)||fe(e,"named tag handle cannot contain such characters"),a=!0,t=e.position+1)),r=e.input.charCodeAt(++e.position);i=e.input.slice(t,e.position),G.test(i)&&fe(e,"tag suffix cannot contain flow indicator characters")}i&&!Z.test(i)&&fe(e,"tag name cannot contain such characters: "+i);try{i=decodeURIComponent(i)}catch(t){fe(e,"tag name is malformed: "+i)}return o?e.tag=i:W.call(e.tagMap,n)?e.tag=e.tagMap[n]+i:"!"===n?e.tag="!"+i:"!!"===n?e.tag="tag:yaml.org,2002:"+i:fe(e,'undeclared tag handle "'+n+'"'),!0}function xe(e){var t,n;if(38!==(n=e.input.charCodeAt(e.position)))return!1;for(null!==e.anchor&&fe(e,"duplication of an anchor property"),n=e.input.charCodeAt(++e.position),t=e.position;0!==n&&!X(n)&&!ee(n);)n=e.input.charCodeAt(++e.position);return e.position===t&&fe(e,"name of an anchor node must contain at least one character"),e.anchor=e.input.slice(t,e.position),!0}function Ie(e,t,i,r,o){var a,l,c,s,u,p,f,d,h,g=1,m=!1,y=!1;if(null!==e.listener&&e.listener("open",e),e.tag=null,e.anchor=null,e.kind=null,e.result=null,a=l=c=4===i||3===i,r&&Ae(e,!0,-1)&&(m=!0,e.lineIndent>t?g=1:e.lineIndent===t?g=0:e.lineIndent<t&&(g=-1)),1===g)for(;Ce(e)||xe(e);)Ae(e,!0,-1)?(m=!0,c=a,e.lineIndent>t?g=1:e.lineIndent===t?g=0:e.lineIndent<t&&(g=-1)):c=!1;if(c&&(c=m||o),1!==g&&4!==i||(d=1===i||2===i?t:t+1,h=e.position-e.lineStart,1===g?c&&(ke(e,h)||function(e,t,n){var i,r,o,a,l,c,s,u=e.tag,p=e.anchor,f={},d=Object.create(null),h=null,g=null,m=null,y=!1,b=!1;if(-1!==e.firstTabInLine)return!1;for(null!==e.anchor&&(e.anchorMap[e.anchor]=f),s=e.input.charCodeAt(e.position);0!==s;){if(y||-1===e.firstTabInLine||(e.position=e.firstTabInLine,fe(e,"tab characters must not be used in indentation")),i=e.input.charCodeAt(e.position+1),o=e.line,63!==s&&58!==s||!X(i)){if(a=e.line,l=e.lineStart,c=e.position,!Ie(e,n,2,!1,!0))break;if(e.line===o){for(s=e.input.charCodeAt(e.position);z(s);)s=e.input.charCodeAt(++e.position);if(58===s)X(s=e.input.charCodeAt(++e.position))||fe(e,"a whitespace character is expected after the key-value separator within a block mapping"),y&&(ye(e,f,d,h,g,null,a,l,c),h=g=m=null),b=!0,y=!1,r=!1,h=e.tag,g=e.result;else{if(!b)return e.tag=u,e.anchor=p,!0;fe(e,"can not read an implicit mapping pair; a colon is missed")}}else{if(!b)return e.tag=u,e.anchor=p,!0;fe(e,"can not read a block mapping entry; a multiline key may not be an implicit key")}}else 63===s?(y&&(ye(e,f,d,h,g,null,a,l,c),h=g=m=null),b=!0,y=!0,r=!0):y?(y=!1,r=!0):fe(e,"incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line"),e.position+=1,s=i;if((e.line===o||e.lineIndent>t)&&(y&&(a=e.line,l=e.lineStart,c=e.position),Ie(e,t,4,!0,r)&&(y?g=e.result:m=e.result),y||(ye(e,f,d,h,g,m,a,l,c),h=g=m=null),Ae(e,!0,-1),s=e.input.charCodeAt(e.position)),(e.line===o||e.lineIndent>t)&&0!==s)fe(e,"bad indentation of a mapping entry");else if(e.lineIndent<t)break}return y&&ye(e,f,d,h,g,null,a,l,c),b&&(e.tag=u,e.anchor=p,e.kind="mapping",e.result=f),b}(e,h,d))||function(e,t){var n,i,r,o,a,l,c,s,u,p,f,d,h=!0,g=e.tag,m=e.anchor,y=Object.create(null);if(91===(d=e.input.charCodeAt(e.position)))a=93,s=!1,o=[];else{if(123!==d)return!1;a=125,s=!0,o={}}for(null!==e.anchor&&(e.anchorMap[e.anchor]=o),d=e.input.charCodeAt(++e.position);0!==d;){if(Ae(e,!0,t),(d=e.input.charCodeAt(e.position))===a)return e.position++,e.tag=g,e.anchor=m,e.kind=s?"mapping":"sequence",e.result=o,!0;h?44===d&&fe(e,"expected the node content, but found ','"):fe(e,"missed comma between flow collection entries"),f=null,l=c=!1,63===d&&X(e.input.charCodeAt(e.position+1))&&(l=c=!0,e.position++,Ae(e,!0,t)),n=e.line,i=e.lineStart,r=e.position,Ie(e,t,1,!1,!0),p=e.tag,u=e.result,Ae(e,!0,t),d=e.input.charCodeAt(e.position),!c&&e.line!==n||58!==d||(l=!0,d=e.input.charCodeAt(++e.position),Ae(e,!0,t),Ie(e,t,1,!1,!0),f=e.result),s?ye(e,o,y,p,u,f,n,i,r):l?o.push(ye(e,null,y,p,u,f,n,i,r)):o.push(u),Ae(e,!0,t),44===(d=e.input.charCodeAt(e.position))?(h=!0,d=e.input.charCodeAt(++e.position)):h=!1}fe(e,"unexpected end of the stream within a flow collection")}(e,d)?y=!0:(l&&function(e,t){var i,r,o,a,l=1,c=!1,s=!1,u=t,p=0,f=!1;if(124===(a=e.input.charCodeAt(e.position)))r=!1;else{if(62!==a)return!1;r=!0}for(e.kind="scalar",e.result="";0!==a;)if(43===(a=e.input.charCodeAt(++e.position))||45===a)1===l?l=43===a?3:2:fe(e,"repeat of a chomping mode identifier");else{if(!((o=ie(a))>=0))break;0===o?fe(e,"bad explicit indentation width of a block scalar; it cannot be less than one"):s?fe(e,"repeat of an indentation width identifier"):(u=t+o-1,s=!0)}if(z(a)){do{a=e.input.charCodeAt(++e.position)}while(z(a));if(35===a)do{a=e.input.charCodeAt(++e.position)}while(!Q(a)&&0!==a)}for(;0!==a;){for(be(e),e.lineIndent=0,a=e.input.charCodeAt(e.position);(!s||e.lineIndent<u)&&32===a;)e.lineIndent++,a=e.input.charCodeAt(++e.position);if(!s&&e.lineIndent>u&&(u=e.lineIndent),Q(a))p++;else{if(e.lineIndent<u){3===l?e.result+=n.repeat("\n",c?1+p:p):1===l&&c&&(e.result+="\n");break}for(r?z(a)?(f=!0,e.result+=n.repeat("\n",c?1+p:p)):f?(f=!1,e.result+=n.repeat("\n",p+1)):0===p?c&&(e.result+=" "):e.result+=n.repeat("\n",p):e.result+=n.repeat("\n",c?1+p:p),c=!0,s=!0,p=0,i=e.position;!Q(a)&&0!==a;)a=e.input.charCodeAt(++e.position);ge(e,i,e.position,!1)}}return!0}(e,d)||function(e,t){var n,i,r;if(39!==(n=e.input.charCodeAt(e.position)))return!1;for(e.kind="scalar",e.result="",e.position++,i=r=e.position;0!==(n=e.input.charCodeAt(e.position));)if(39===n){if(ge(e,i,e.position,!0),39!==(n=e.input.charCodeAt(++e.position)))return!0;i=e.position,e.position++,r=e.position}else Q(n)?(ge(e,i,r,!0),we(e,Ae(e,!1,t)),i=r=e.position):e.position===e.lineStart&&ve(e)?fe(e,"unexpected end of the document within a single quoted scalar"):(e.position++,r=e.position);fe(e,"unexpected end of the stream within a single quoted scalar")}(e,d)||function(e,t){var n,i,r,o,a,l;if(34!==(l=e.input.charCodeAt(e.position)))return!1;for(e.kind="scalar",e.result="",e.position++,n=i=e.position;0!==(l=e.input.charCodeAt(e.position));){if(34===l)return ge(e,n,e.position,!0),e.position++,!0;if(92===l){if(ge(e,n,e.position,!0),Q(l=e.input.charCodeAt(++e.position)))Ae(e,!1,t);else if(l<256&&le[l])e.result+=ce[l],e.position++;else if((a=ne(l))>0){for(r=a,o=0;r>0;r--)(a=te(l=e.input.charCodeAt(++e.position)))>=0?o=(o<<4)+a:fe(e,"expected hexadecimal character");e.result+=oe(o),e.position++}else fe(e,"unknown escape sequence");n=i=e.position}else Q(l)?(ge(e,n,i,!0),we(e,Ae(e,!1,t)),n=i=e.position):e.position===e.lineStart&&ve(e)?fe(e,"unexpected end of the document within a double quoted scalar"):(e.position++,i=e.position)}fe(e,"unexpected end of the stream within a double quoted scalar")}(e,d)?y=!0:!function(e){var t,n,i;if(42!==(i=e.input.charCodeAt(e.position)))return!1;for(i=e.input.charCodeAt(++e.position),t=e.position;0!==i&&!X(i)&&!ee(i);)i=e.input.charCodeAt(++e.position);return e.position===t&&fe(e,"name of an alias node must contain at least one character"),n=e.input.slice(t,e.position),W.call(e.anchorMap,n)||fe(e,'unidentified alias "'+n+'"'),e.result=e.anchorMap[n],Ae(e,!0,-1),!0}(e)?function(e,t,n){var i,r,o,a,l,c,s,u,p=e.kind,f=e.result;if(X(u=e.input.charCodeAt(e.position))||ee(u)||35===u||38===u||42===u||33===u||124===u||62===u||39===u||34===u||37===u||64===u||96===u)return!1;if((63===u||45===u)&&(X(i=e.input.charCodeAt(e.position+1))||n&&ee(i)))return!1;for(e.kind="scalar",e.result="",r=o=e.position,a=!1;0!==u;){if(58===u){if(X(i=e.input.charCodeAt(e.position+1))||n&&ee(i))break}else if(35===u){if(X(e.input.charCodeAt(e.position-1)))break}else{if(e.position===e.lineStart&&ve(e)||n&&ee(u))break;if(Q(u)){if(l=e.line,c=e.lineStart,s=e.lineIndent,Ae(e,!1,-1),e.lineIndent>=t){a=!0,u=e.input.charCodeAt(e.position);continue}e.position=o,e.line=l,e.lineStart=c,e.lineIndent=s;break}}a&&(ge(e,r,o,!1),we(e,e.line-l),r=o=e.position,a=!1),z(u)||(o=e.position+1),u=e.input.charCodeAt(++e.position)}return ge(e,r,o,!1),!!e.result||(e.kind=p,e.result=f,!1)}(e,d,1===i)&&(y=!0,null===e.tag&&(e.tag="?")):(y=!0,null===e.tag&&null===e.anchor||fe(e,"alias node should not have any properties")),null!==e.anchor&&(e.anchorMap[e.anchor]=e.result)):0===g&&(y=c&&ke(e,h))),null===e.tag)null!==e.anchor&&(e.anchorMap[e.anchor]=e.result);else if("?"===e.tag){for(null!==e.result&&"scalar"!==e.kind&&fe(e,'unacceptable node kind for !<?> tag; it should be "scalar", not "'+e.kind+'"'),s=0,u=e.implicitTypes.length;s<u;s+=1)if((f=e.implicitTypes[s]).resolve(e.result)){e.result=f.construct(e.result),e.tag=f.tag,null!==e.anchor&&(e.anchorMap[e.anchor]=e.result);break}}else if("!"!==e.tag){if(W.call(e.typeMap[e.kind||"fallback"],e.tag))f=e.typeMap[e.kind||"fallback"][e.tag];else for(f=null,s=0,u=(p=e.typeMap.multi[e.kind||"fallback"]).length;s<u;s+=1)if(e.tag.slice(0,p[s].tag.length)===p[s].tag){f=p[s];break}f||fe(e,"unknown tag !<"+e.tag+">"),null!==e.result&&f.kind!==e.kind&&fe(e,"unacceptable node kind for !<"+e.tag+'> tag; it should be "'+f.kind+'", not "'+e.kind+'"'),f.resolve(e.result,e.tag)?(e.result=f.construct(e.result,e.tag),null!==e.anchor&&(e.anchorMap[e.anchor]=e.result)):fe(e,"cannot resolve a node with !<"+e.tag+"> explicit tag")}return null!==e.listener&&e.listener("close",e),null!==e.tag||null!==e.anchor||y}function Se(e){var t,n,i,r,o=e.position,a=!1;for(e.version=null,e.checkLineBreaks=e.legacy,e.tagMap=Object.create(null),e.anchorMap=Object.create(null);0!==(r=e.input.charCodeAt(e.position))&&(Ae(e,!0,-1),r=e.input.charCodeAt(e.position),!(e.lineIndent>0||37!==r));){for(a=!0,r=e.input.charCodeAt(++e.position),t=e.position;0!==r&&!X(r);)r=e.input.charCodeAt(++e.position);for(i=[],(n=e.input.slice(t,e.position)).length<1&&fe(e,"directive name must not be less than one character in length");0!==r;){for(;z(r);)r=e.input.charCodeAt(++e.position);if(35===r){do{r=e.input.charCodeAt(++e.position)}while(0!==r&&!Q(r));break}if(Q(r))break;for(t=e.position;0!==r&&!X(r);)r=e.input.charCodeAt(++e.position);i.push(e.input.slice(t,e.position))}0!==r&&be(e),W.call(he,n)?he[n](e,n,i):de(e,'unknown document directive "'+n+'"')}Ae(e,!0,-1),0===e.lineIndent&&45===e.input.charCodeAt(e.position)&&45===e.input.charCodeAt(e.position+1)&&45===e.input.charCodeAt(e.position+2)?(e.position+=3,Ae(e,!0,-1)):a&&fe(e,"directives end mark is expected"),Ie(e,e.lineIndent-1,4,!1,!0),Ae(e,!0,-1),e.checkLineBreaks&&$.test(e.input.slice(o,e.position))&&de(e,"non-ASCII line breaks are interpreted as content"),e.documents.push(e.result),e.position===e.lineStart&&ve(e)?46===e.input.charCodeAt(e.position)&&(e.position+=3,Ae(e,!0,-1)):e.position<e.length-1&&fe(e,"end of the stream or a document separator is expected")}function Oe(e,t){t=t||{},0!==(e=String(e)).length&&(10!==e.charCodeAt(e.length-1)&&13!==e.charCodeAt(e.length-1)&&(e+="\n"),65279===e.charCodeAt(0)&&(e=e.slice(1)));var n=new ue(e,t),i=e.indexOf("\0");for(-1!==i&&(n.position=i,fe(n,"null byte is not allowed in input")),n.input+="\0";32===n.input.charCodeAt(n.position);)n.lineIndent+=1,n.position+=1;for(;n.position<n.length-1;)Se(n);return n.documents}var je={loadAll:function(e,t,n){null!==t&&"object"==typeof t&&void 0===n&&(n=t,t=null);var i=Oe(e,n);if("function"!=typeof t)return i;for(var r=0,o=i.length;r<o;r+=1)t(i[r])},load:function(e,t){var n=Oe(e,t);if(0!==n.length){if(1===n.length)return n[0];throw new o("expected a single document in the stream, but found more")}}},Te=Object.prototype.toString,Ne=Object.prototype.hasOwnProperty,Fe=65279,Ee={0:"\\0",7:"\\a",8:"\\b",9:"\\t",10:"\\n",11:"\\v",12:"\\f",13:"\\r",27:"\\e",34:'\\"',92:"\\\\",133:"\\N",160:"\\_",8232:"\\L",8233:"\\P"},Me=["y","Y","yes","Yes","YES","on","On","ON","n","N","no","No","NO","off","Off","OFF"],Le=/^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;function _e(e){var t,i,r;if(t=e.toString(16).toUpperCase(),e<=255)i="x",r=2;else if(e<=65535)i="u",r=4;else{if(!(e<=4294967295))throw new o("code point within a string may not be greater than 0xFFFFFFFF");i="U",r=8}return"\\"+i+n.repeat("0",r-t.length)+t}function De(e){this.schema=e.schema||P,this.indent=Math.max(1,e.indent||2),this.noArrayIndent=e.noArrayIndent||!1,this.skipInvalid=e.skipInvalid||!1,this.flowLevel=n.isNothing(e.flowLevel)?-1:e.flowLevel,this.styleMap=function(e,t){var n,i,r,o,a,l,c;if(null===t)return{};for(n={},r=0,o=(i=Object.keys(t)).length;r<o;r+=1)a=i[r],l=String(t[a]),"!!"===a.slice(0,2)&&(a="tag:yaml.org,2002:"+a.slice(2)),(c=e.compiledTypeMap.fallback[a])&&Ne.call(c.styleAliases,l)&&(l=c.styleAliases[l]),n[a]=l;return n}(this.schema,e.styles||null),this.sortKeys=e.sortKeys||!1,this.lineWidth=e.lineWidth||80,this.noRefs=e.noRefs||!1,this.noCompatMode=e.noCompatMode||!1,this.condenseFlow=e.condenseFlow||!1,this.quotingType='"'===e.quotingType?2:1,this.forceQuotes=e.forceQuotes||!1,this.replacer="function"==typeof e.replacer?e.replacer:null,this.implicitTypes=this.schema.compiledImplicit,this.explicitTypes=this.schema.compiledExplicit,this.tag=null,this.result="",this.duplicates=[],this.usedDuplicates=null}function Ue(e,t){for(var i,r=n.repeat(" ",t),o=0,a=-1,l="",c=e.length;o<c;)-1===(a=e.indexOf("\n",o))?(i=e.slice(o),o=c):(i=e.slice(o,a+1),o=a+1),i.length&&"\n"!==i&&(l+=r),l+=i;return l}function qe(e,t){return"\n"+n.repeat(" ",e.indent*t)}function Ye(e){return 32===e||9===e}function Re(e){return 32<=e&&e<=126||161<=e&&e<=55295&&8232!==e&&8233!==e||57344<=e&&e<=65533&&e!==Fe||65536<=e&&e<=1114111}function Be(e){return Re(e)&&e!==Fe&&13!==e&&10!==e}function Ke(e,t,n){var i=Be(e),r=i&&!Ye(e);return(n?i:i&&44!==e&&91!==e&&93!==e&&123!==e&&125!==e)&&35!==e&&!(58===t&&!r)||Be(t)&&!Ye(t)&&35===e||58===t&&r}function Pe(e,t){var n,i=e.charCodeAt(t);return i>=55296&&i<=56319&&t+1<e.length&&(n=e.charCodeAt(t+1))>=56320&&n<=57343?1024*(i-55296)+n-56320+65536:i}function We(e){return/^\n* /.test(e)}function He(e,t,n,i,r,o,a,l){var c,s,u=0,p=null,f=!1,d=!1,h=-1!==i,g=-1,m=Re(s=Pe(e,0))&&s!==Fe&&!Ye(s)&&45!==s&&63!==s&&58!==s&&44!==s&&91!==s&&93!==s&&123!==s&&125!==s&&35!==s&&38!==s&&42!==s&&33!==s&&124!==s&&61!==s&&62!==s&&39!==s&&34!==s&&37!==s&&64!==s&&96!==s&&function(e){return!Ye(e)&&58!==e}(Pe(e,e.length-1));if(t||a)for(c=0;c<e.length;u>=65536?c+=2:c++){if(!Re(u=Pe(e,c)))return 5;m=m&&Ke(u,p,l),p=u}else{for(c=0;c<e.length;u>=65536?c+=2:c++){if(10===(u=Pe(e,c)))f=!0,h&&(d=d||c-g-1>i&&" "!==e[g+1],g=c);else if(!Re(u))return 5;m=m&&Ke(u,p,l),p=u}d=d||h&&c-g-1>i&&" "!==e[g+1]}return f||d?n>9&&We(e)?5:a?2===o?5:2:d?4:3:!m||a||r(e)?2===o?5:2:1}function $e(e,t,n,i,r){e.dump=function(){if(0===t.length)return 2===e.quotingType?'""':"''";if(!e.noCompatMode&&(-1!==Me.indexOf(t)||Le.test(t)))return 2===e.quotingType?'"'+t+'"':"'"+t+"'";var a=e.indent*Math.max(1,n),l=-1===e.lineWidth?-1:Math.max(Math.min(e.lineWidth,40),e.lineWidth-a),c=i||e.flowLevel>-1&&n>=e.flowLevel;switch(He(t,c,e.indent,l,function(t){return function(e,t){var n,i;for(n=0,i=e.implicitTypes.length;n<i;n+=1)if(e.implicitTypes[n].resolve(t))return!0;return!1}(e,t)},e.quotingType,e.forceQuotes&&!i,r)){case 1:return t;case 2:return"'"+t.replace(/'/g,"''")+"'";case 3:return"|"+Ge(t,e.indent)+Ve(Ue(t,a));case 4:return">"+Ge(t,e.indent)+Ve(Ue(function(e,t){var n,i,r=/(\n+)([^\n]*)/g,o=(l=e.indexOf("\n"),l=-1!==l?l:e.length,r.lastIndex=l,Ze(e.slice(0,l),t)),a="\n"===e[0]||" "===e[0];var l;for(;i=r.exec(e);){var c=i[1],s=i[2];n=" "===s[0],o+=c+(a||n||""===s?"":"\n")+Ze(s,t),a=n}return o}(t,l),a));case 5:return'"'+function(e){for(var t,n="",i=0,r=0;r<e.length;i>=65536?r+=2:r++)i=Pe(e,r),!(t=Ee[i])&&Re(i)?(n+=e[r],i>=65536&&(n+=e[r+1])):n+=t||_e(i);return n}(t)+'"';default:throw new o("impossible error: invalid scalar style")}}()}function Ge(e,t){var n=We(e)?String(t):"",i="\n"===e[e.length-1];return n+(i&&("\n"===e[e.length-2]||"\n"===e)?"+":i?"":"-")+"\n"}function Ve(e){return"\n"===e[e.length-1]?e.slice(0,-1):e}function Ze(e,t){if(""===e||" "===e[0])return e;for(var n,i,r=/ [^ ]/g,o=0,a=0,l=0,c="";n=r.exec(e);)(l=n.index)-o>t&&(i=a>o?a:l,c+="\n"+e.slice(o,i),o=i+1),a=l;return c+="\n",e.length-o>t&&a>o?c+=e.slice(o,a)+"\n"+e.slice(a+1):c+=e.slice(o),c.slice(1)}function Je(e,t,n,i){var r,o,a,l="",c=e.tag;for(r=0,o=n.length;r<o;r+=1)a=n[r],e.replacer&&(a=e.replacer.call(n,String(r),a)),(ze(e,t+1,a,!0,!0,!1,!0)||void 0===a&&ze(e,t+1,null,!0,!0,!1,!0))&&(i&&""===l||(l+=qe(e,t)),e.dump&&10===e.dump.charCodeAt(0)?l+="-":l+="- ",l+=e.dump);e.tag=c,e.dump=l||"[]"}function Qe(e,t,n){var i,r,a,l,c,s;for(a=0,l=(r=n?e.explicitTypes:e.implicitTypes).length;a<l;a+=1)if(((c=r[a]).instanceOf||c.predicate)&&(!c.instanceOf||"object"==typeof t&&t instanceof c.instanceOf)&&(!c.predicate||c.predicate(t))){if(n?c.multi&&c.representName?e.tag=c.representName(t):e.tag=c.tag:e.tag="?",c.represent){if(s=e.styleMap[c.tag]||c.defaultStyle,"[object Function]"===Te.call(c.represent))i=c.represent(t,s);else{if(!Ne.call(c.represent,s))throw new o("!<"+c.tag+'> tag resolver accepts not "'+s+'" style');i=c.represent[s](t,s)}e.dump=i}return!0}return!1}function ze(e,t,n,i,r,a,l){e.tag=null,e.dump=n,Qe(e,n,!1)||Qe(e,n,!0);var c,s=Te.call(e.dump),u=i;i&&(i=e.flowLevel<0||e.flowLevel>t);var p,f,d="[object Object]"===s||"[object Array]"===s;if(d&&(f=-1!==(p=e.duplicates.indexOf(n))),(null!==e.tag&&"?"!==e.tag||f||2!==e.indent&&t>0)&&(r=!1),f&&e.usedDuplicates[p])e.dump="*ref_"+p;else{if(d&&f&&!e.usedDuplicates[p]&&(e.usedDuplicates[p]=!0),"[object Object]"===s)i&&0!==Object.keys(e.dump).length?(!function(e,t,n,i){var r,a,l,c,s,u,p="",f=e.tag,d=Object.keys(n);if(!0===e.sortKeys)d.sort();else if("function"==typeof e.sortKeys)d.sort(e.sortKeys);else if(e.sortKeys)throw new o("sortKeys must be a boolean or a function");for(r=0,a=d.length;r<a;r+=1)u="",i&&""===p||(u+=qe(e,t)),c=n[l=d[r]],e.replacer&&(c=e.replacer.call(n,l,c)),ze(e,t+1,l,!0,!0,!0)&&((s=null!==e.tag&&"?"!==e.tag||e.dump&&e.dump.length>1024)&&(e.dump&&10===e.dump.charCodeAt(0)?u+="?":u+="? "),u+=e.dump,s&&(u+=qe(e,t)),ze(e,t+1,c,!0,s)&&(e.dump&&10===e.dump.charCodeAt(0)?u+=":":u+=": ",p+=u+=e.dump));e.tag=f,e.dump=p||"{}"}(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(!function(e,t,n){var i,r,o,a,l,c="",s=e.tag,u=Object.keys(n);for(i=0,r=u.length;i<r;i+=1)l="",""!==c&&(l+=", "),e.condenseFlow&&(l+='"'),a=n[o=u[i]],e.replacer&&(a=e.replacer.call(n,o,a)),ze(e,t,o,!1,!1)&&(e.dump.length>1024&&(l+="? "),l+=e.dump+(e.condenseFlow?'"':"")+":"+(e.condenseFlow?"":" "),ze(e,t,a,!1,!1)&&(c+=l+=e.dump));e.tag=s,e.dump="{"+c+"}"}(e,t,e.dump),f&&(e.dump="&ref_"+p+" "+e.dump));else if("[object Array]"===s)i&&0!==e.dump.length?(e.noArrayIndent&&!l&&t>0?Je(e,t-1,e.dump,r):Je(e,t,e.dump,r),f&&(e.dump="&ref_"+p+e.dump)):(!function(e,t,n){var i,r,o,a="",l=e.tag;for(i=0,r=n.length;i<r;i+=1)o=n[i],e.replacer&&(o=e.replacer.call(n,String(i),o)),(ze(e,t,o,!1,!1)||void 0===o&&ze(e,t,null,!1,!1))&&(""!==a&&(a+=","+(e.condenseFlow?"":" ")),a+=e.dump);e.tag=l,e.dump="["+a+"]"}(e,t,e.dump),f&&(e.dump="&ref_"+p+" "+e.dump));else{if("[object String]"!==s){if("[object Undefined]"===s)return!1;if(e.skipInvalid)return!1;throw new o("unacceptable kind of an object to dump "+s)}"?"!==e.tag&&$e(e,e.dump,t,a,u)}null!==e.tag&&"?"!==e.tag&&(c=encodeURI("!"===e.tag[0]?e.tag.slice(1):e.tag).replace(/!/g,"%21"),c="!"===e.tag[0]?"!"+c:"tag:yaml.org,2002:"===c.slice(0,18)?"!!"+c.slice(18):"!<"+c+">",e.dump=c+" "+e.dump)}return!0}function Xe(e,t){var n,i,r=[],o=[];for(et(e,r,o),n=0,i=o.length;n<i;n+=1)t.duplicates.push(r[o[n]]);t.usedDuplicates=new Array(i)}function et(e,t,n){var i,r,o;if(null!==e&&"object"==typeof e)if(-1!==(r=t.indexOf(e)))-1===n.indexOf(r)&&n.push(r);else if(t.push(e),Array.isArray(e))for(r=0,o=e.length;r<o;r+=1)et(e[r],t,n);else for(r=0,o=(i=Object.keys(e)).length;r<o;r+=1)et(e[i[r]],t,n)}function tt(e,t){return function(){throw new Error("Function yaml."+e+" is removed in js-yaml 4. Use yaml."+t+" instead, which is now safe by default.")}}var nt=p,it=h,rt=b,ot=j,at=T,lt=P,ct=je.load,st=je.loadAll,ut={dump:function(e,t){var n=new De(t=t||{});n.noRefs||Xe(e,n);var i=e;return n.replacer&&(i=n.replacer.call({"":i},"",i)),ze(n,0,i,!0,!0)?n.dump+"\n":""}}.dump,pt=o,ft={binary:_,float:O,map:y,null:A,pairs:R,set:K,timestamp:E,bool:v,int:x,merge:M,omap:q,seq:m,str:g},dt=tt("safeLoad","load"),ht=tt("safeLoadAll","loadAll"),gt=tt("safeDump","dump"),mt={Type:nt,Schema:it,FAILSAFE_SCHEMA:rt,JSON_SCHEMA:ot,CORE_SCHEMA:at,DEFAULT_SCHEMA:lt,load:ct,loadAll:st,dump:ut,YAMLException:pt,types:ft,safeLoad:dt,safeLoadAll:ht,safeDump:gt};e.CORE_SCHEMA=at,e.DEFAULT_SCHEMA=lt,e.FAILSAFE_SCHEMA=rt,e.JSON_SCHEMA=ot,e.Schema=it,e.Type=nt,e.YAMLException=pt,e.default=mt,e.dump=ut,e.load=ct,e.loadAll=st,e.safeDump=gt,e.safeLoad=dt,e.safeLoadAll=ht,e.types=ft,Object.defineProperty(e,"__esModule",{value:!0})});
+
+</script>
+
+<!-- ===========================================================
+     Format Flipper — UI + conversion logic
+     =========================================================== -->
+<script>
+(function() {
+'use strict';
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// ============================================================
+// PARSERS — format text → JS value (intermediate representation)
+// ============================================================
+
+function parseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch (strictErr) {
+    // Retry as JSONC: strip comments and trailing commas, then parse
+    // strictly. If it still fails, surface the original strict error.
+    try {
+      return JSON.parse(stripJsonc(text));
+    } catch (e) {
+      throw strictErr;
+    }
+  }
+}
+
+function stripJsonc(text) {
+  let out = '';
+  let i = 0;
+  let inStr = false;
+  const skipComment = j => {
+    if (text[j] === '/' && text[j + 1] === '/') {
+      while (j < text.length && text[j] !== '\n') j++;
+      return j;
+    }
+    if (text[j] === '/' && text[j + 1] === '*') {
+      j += 2;
+      while (j < text.length && !(text[j] === '*' && text[j + 1] === '/')) j++;
+      return j + 2;
+    }
+    return j;
+  };
+  while (i < text.length) {
+    const c = text[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\' && i + 1 < text.length) { out += text[i + 1]; i += 2; continue; }
+      if (c === '"') inStr = false;
+      i++;
+      continue;
+    }
+    if (c === '"') { inStr = true; out += c; i++; continue; }
+    const skipped = skipComment(i);
+    if (skipped !== i) { i = skipped; continue; }
+    if (c === ',') {
+      // Trailing comma: drop it if the next meaningful char closes a container
+      let j = i + 1;
+      while (j < text.length) {
+        if (/\s/.test(text[j])) { j++; continue; }
+        const s = skipComment(j);
+        if (s !== j) { j = s; continue; }
+        break;
+      }
+      if (text[j] === '}' || text[j] === ']') { i++; continue; }
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+function parseNdjson(text) {
+  const values = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    try {
+      values.push(JSON.parse(lines[i]));
+    } catch (e) {
+      throw new Error('NDJSON line ' + (i + 1) + ': ' + e.message);
+    }
+  }
+  return values;
+}
+
+function parseYaml(text) {
+  return window.jsyaml.load(text);
+}
+
+// Shared string → number/boolean sniffing for the tabular parsers.
+// Skipped entirely when opts.coerceTypes === false (input-side UI toggle).
+function coerceScalar(text, opts) {
+  if (opts && opts.coerceTypes === false) return text;
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  if (/^-?\d+$/.test(text)) return parseInt(text);
+  if (/^-?\d*\.\d+$/.test(text)) return parseFloat(text);
+  return text;
+}
+
+function parseDelimited(text, delimiter, opts) {
+  const strict = !!(opts && opts.strictParse);
+  const rows = [];
+  let current = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i += 2; continue; }
+      if (c === '"') { inQuotes = false; i++; continue; }
+      field += c; i++;
+    } else {
+      if (c === '"' && field === '') { inQuotes = true; i++; continue; }
+      if (c === delimiter) { current.push(field); field = ''; i++; continue; }
+      if (c === '\n' || c === '\r') {
+        current.push(field); field = '';
+        if (current.length > 1 || current[0] !== '') rows.push(current);
+        current = [];
+        if (c === '\r' && text[i + 1] === '\n') i += 2;
+        else i++;
+        continue;
+      }
+      field += c; i++;
+    }
+  }
+  if (inQuotes && strict) throw new Error('unterminated quoted field');
+  if (field !== '' || current.length > 0) {
+    current.push(field);
+    if (current.length > 1 || current[0] !== '') rows.push(current);
+  }
+  if (rows.length === 0) return [];
+  const header = rows[0];
+  const records = [];
+  for (let r = 1; r < rows.length; r++) {
+    if (strict && rows[r].length !== header.length) {
+      throw new Error(`row ${r + 1} has ${rows[r].length} field${rows[r].length === 1 ? '' : 's'}, expected ${header.length}`);
+    }
+    const obj = {};
+    for (let c = 0; c < header.length; c++) {
+      obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
+    }
+    records.push(obj);
+  }
+  return records;
+}
+
+const CSV_DELIMITERS = { comma: ',', semicolon: ';', pipe: '|', tab: '\t' };
+function csvDelimiter(name) { return CSV_DELIMITERS[name] || ','; }
+
+function parseCsv(text, opts) { return parseDelimited(text, csvDelimiter(opts && opts.csvDelimiterIn), opts); }
+function parseTsv(text, opts) { return parseDelimited(text, '\t', opts); }
+
+function parseXml(text, opts) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'text/xml');
+  const parseError = doc.querySelector('parsererror');
+  if (parseError) throw new Error('Invalid XML: ' + parseError.textContent.slice(0, 100));
+  const root = doc.documentElement;
+  // If an attribute-less root has repeated children with the same tag,
+  // treat it as an array of records
+  const children = [...root.children];
+  const rootAttrs = root.attributes ? root.attributes.length : 0;
+  if (children.length > 0 && rootAttrs === 0 && children.every(c => c.tagName === children[0].tagName)) {
+    // Array of records
+    return children.map(c => xmlNodeToObject(c, opts));
+  }
+  return xmlNodeToObject(root, opts);
+}
+
+function coerceXmlText(text, opts) {
+  if (opts && opts.coerceTypes === false) return text;
+  if (text === 'null') return null;
+  return coerceScalar(text, opts);
+}
+
+function xmlNodeToObject(node, opts) {
+  const children = [...node.children];
+  const obj = {};
+  // Attributes become @-prefixed keys (XSLT-style convention)
+  const attrs = node.attributes || [];
+  for (let i = 0; i < attrs.length; i++) {
+    obj['@' + attrs[i].name] = coerceXmlText(attrs[i].value, opts);
+  }
+  if (children.length === 0) {
+    const text = node.textContent.trim();
+    if (Object.keys(obj).length === 0) return coerceXmlText(text, opts);
+    if (text !== '') obj['#text'] = coerceXmlText(text, opts);
+    return obj;
+  }
+  for (const child of children) {
+    const val = xmlNodeToObject(child, opts);
+    if (child.tagName in obj) {
+      if (!Array.isArray(obj[child.tagName])) obj[child.tagName] = [obj[child.tagName]];
+      obj[child.tagName].push(val);
+    } else {
+      obj[child.tagName] = val;
+    }
+  }
+  return obj;
+}
+
+function parseMarkdownTable(text, opts) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const parseCells = line => {
+    // Split on pipes, but keep backslash-escaped pipes inside cells
+    const raw = [];
+    let cell = '';
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '\\' && line[i + 1] === '|') { cell += '\\|'; i++; continue; }
+      if (line[i] === '|') { raw.push(cell); cell = ''; continue; }
+      cell += line[i];
+    }
+    raw.push(cell);
+    const slice = raw.slice(
+      raw[0].trim() === '' ? 1 : 0,
+      raw[raw.length - 1].trim() === '' ? -1 : raw.length
+    );
+    return slice.map(s => s.trim().replace(/\\\|/g, '|').replace(/<br>/gi, '\n'));
+  };
+  const header = parseCells(lines[0]);
+  // lines[1] is the separator
+  const strict = !!(opts && opts.strictParse);
+  const records = [];
+  for (let i = 2; i < lines.length; i++) {
+    const cells = parseCells(lines[i]);
+    if (strict && cells.length !== header.length) {
+      throw new Error(`table row ${i + 1} has ${cells.length} cell${cells.length === 1 ? '' : 's'}, expected ${header.length}`);
+    }
+    const obj = {};
+    for (let c = 0; c < header.length; c++) {
+      obj[header[c]] = coerceScalar(cells[c] ?? '', opts);
+    }
+    records.push(obj);
+  }
+  return records;
+}
+
+function parseHtmlTable(text, opts) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString('<!DOCTYPE html><html><body>' + text + '</body></html>', 'text/html');
+  const table = doc.querySelector('table');
+  if (!table) throw new Error('No <table> element found');
+  const rows = [...table.querySelectorAll('tr')].map(tr =>
+    [...tr.children].map(td => td.textContent.trim())
+  );
+  if (rows.length === 0) return [];
+  const header = rows[0];
+  const records = [];
+  for (let r = 1; r < rows.length; r++) {
+    const obj = {};
+    for (let c = 0; c < header.length; c++) {
+      obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
+    }
+    records.push(obj);
+  }
+  return records;
+}
+
+function parseSqlInsert(text, opts) {
+  const m = text.match(/INSERT\s+INTO\s+[`"']?(\w+)[`"']?\s*\(([^)]+)\)\s*VALUES\s*([\s\S]+)$/i);
+  if (!m) throw new Error('Could not parse — expected: INSERT INTO table (cols) VALUES (vals), ...;');
+  const cols = m[2].split(',').map(s => s.trim().replace(/^[`"']|[`"']$/g, ''));
+  const valuesBlob = m[3].replace(/;\s*$/, '');
+  const tuples = [];
+  let i = 0, depth = 0, inStr = false, strCh = null, cur = '';
+  while (i < valuesBlob.length) {
+    const c = valuesBlob[i];
+    if (inStr) {
+      cur += c;
+      if (c === '\\' && i + 1 < valuesBlob.length) { cur += valuesBlob[i+1]; i += 2; continue; }
+      if (c === strCh) inStr = false;
+      i++;
+    } else {
+      if (c === "'" || c === '"') { inStr = true; strCh = c; cur += c; i++; continue; }
+      if (c === '(') { depth++; if (depth === 1) { cur = ''; i++; continue; } }
+      if (c === ')') { depth--; if (depth === 0) { tuples.push(cur); cur = ''; i++; continue; } }
+      if (depth > 0) cur += c;
+      i++;
+    }
+  }
+  const records = [];
+  for (const t of tuples) {
+    const vals = splitSqlValues(t, opts);
+    const obj = {};
+    for (let c = 0; c < cols.length; c++) obj[cols[c]] = vals[c] ?? null;
+    records.push(obj);
+  }
+  return records;
+}
+
+function splitSqlValues(s, opts) {
+  const out = [];
+  let cur = '', inStr = false, strCh = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (c === '\\' && i + 1 < s.length) { cur += c + s[i+1]; i++; continue; }
+      if (c === strCh) inStr = false;
+      cur += c;
+    } else {
+      if (c === "'" || c === '"') { inStr = true; strCh = c; cur += c; continue; }
+      if (c === ',') { out.push(parseSqlValue(cur.trim(), opts)); cur = ''; continue; }
+      cur += c;
+    }
+  }
+  if (cur.trim() !== '') out.push(parseSqlValue(cur.trim(), opts));
+  return out;
+}
+
+function parseSqlValue(v, opts) {
+  // NULL and quote handling are SQL structure, not type sniffing —
+  // they apply regardless of the coerce-types toggle.
+  if (v === 'NULL' || v === 'null') return null;
+  if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1).replace(/''/g, "'").replace(/\\'/g, "'");
+  if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1).replace(/""/g, '"');
+  if (!opts || opts.coerceTypes !== false) {
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^-?\d*\.\d+$/.test(v)) return parseFloat(v);
+    if (v === 'true' || v === 'TRUE') return true;
+    if (v === 'false' || v === 'FALSE') return false;
+  }
+  return v;
+}
+
+function parseIni(text, opts) {
+  const root = {};
+  let current = root;
+  const lines = text.split(/\r?\n/);
+  let lineNo = 0;
+  const err = msg => { throw new Error(`INI line ${lineNo}: ${msg}`); };
+
+  for (const rawLine of lines) {
+    lineNo++;
+    const line = rawLine.trim();
+    if (!line) continue;
+    // Full-line comments only — values legitimately contain ; and #
+    if (line[0] === ';' || line[0] === '#') continue;
+    if (line.startsWith('[') && line.endsWith(']')) {
+      const pathStr = line.slice(1, -1).trim();
+      if (!pathStr) err('empty section header');
+      const path = pathStr.split('.').map(s => s.trim());
+      if (path.some(s => !s)) err(`invalid section header [${pathStr}]`);
+      let node = root;
+      for (const seg of path) {
+        if (!(seg in node)) node[seg] = {};
+        else if (node[seg] === null || typeof node[seg] !== 'object' || Array.isArray(node[seg])) {
+          err(`[${pathStr}] conflicts with an existing non-section value`);
+        }
+        node = node[seg];
+      }
+      current = node;
+      continue;
+    }
+    const eqIdx = line.indexOf('=');
+    if (eqIdx < 0) err('expected "key = value" or "[section]"');
+    const key = line.slice(0, eqIdx).trim();
+    if (!key) err('empty key');
+    if (key in current) err(`duplicate key "${key}"`);
+    const valRaw = line.slice(eqIdx + 1).trim();
+    if (valRaw.length >= 2 && valRaw[0] === '"' && valRaw[valRaw.length - 1] === '"') {
+      current[key] = iniUnquote(valRaw, err);
+    } else {
+      current[key] = coerceScalar(valRaw, opts);
+    }
+  }
+  return root;
+}
+
+function iniUnquote(raw, err) {
+  let out = '';
+  for (let i = 1; i < raw.length - 1; i++) {
+    const c = raw[i];
+    if (c === '\\') {
+      const n = raw[++i];
+      if (n === 'n') out += '\n';
+      else if (n === 't') out += '\t';
+      else if (n === 'r') out += '\r';
+      else if (n === '"') out += '"';
+      else if (n === '\\') out += '\\';
+      else if (n === undefined) err('dangling backslash in quoted value');
+      else out += n;
+    } else out += c;
+  }
+  return out;
+}
+
+function parseProperties(text, opts) {
+  const records = {};
+  const physical = text.split(/\r?\n/);
+  const logical = [];
+  for (let i = 0; i < physical.length; i++) {
+    let line = physical[i];
+    const no = i + 1;
+    while (propHasContinuation(line) && i + 1 < physical.length) {
+      line = line.slice(0, -1) + physical[++i].replace(/^[ \t]+/, '');
+    }
+    logical.push({ line, no });
+  }
+  let lineNo = 0;
+  const err = msg => { throw new Error(`Properties line ${lineNo}: ${msg}`); };
+  for (const entry of logical) {
+    lineNo = entry.no;
+    const line = entry.line.replace(/^[ \t]+/, '');
+    if (!line) continue;
+    if (line[0] === '#' || line[0] === '!') continue;
+    // Key ends at the first unescaped =, :, or whitespace
+    let idx = -1;
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '\\') { j++; continue; }
+      if (line[j] === '=' || line[j] === ':' || line[j] === ' ' || line[j] === '\t') { idx = j; break; }
+    }
+    let keyRaw, valRaw;
+    if (idx < 0) {
+      keyRaw = line;
+      valRaw = '';
+    } else {
+      keyRaw = line.slice(0, idx);
+      let rest = line.slice(idx).replace(/^[ \t]+/, '');
+      if (rest[0] === '=' || rest[0] === ':') rest = rest.slice(1).replace(/^[ \t]+/, '');
+      valRaw = rest;
+    }
+    const key = propUnescape(keyRaw, err);
+    if (!key) err('empty key');
+    if (key in records) err(`duplicate key "${key}"`);
+    records[key] = coerceScalar(propUnescape(valRaw, err), opts);
+  }
+  return records;
+}
+
+function propHasContinuation(line) {
+  let n = 0;
+  for (let i = line.length - 1; i >= 0 && line[i] === '\\'; i--) n++;
+  return n % 2 === 1;
+}
+
+function propUnescape(s, err) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c !== '\\') { out += c; continue; }
+    const n = s[++i];
+    if (n === undefined) break;
+    if (n === 'n') out += '\n';
+    else if (n === 't') out += '\t';
+    else if (n === 'r') out += '\r';
+    else if (n === 'f') out += '\f';
+    else if (n === 'u') {
+      const hex = s.slice(i + 1, i + 5);
+      if (!/^[0-9a-fA-F]{4}$/.test(hex)) err('invalid \\uXXXX escape');
+      out += String.fromCharCode(parseInt(hex, 16));
+      i += 4;
+    } else out += n;
+  }
+  return out;
+}
+
+// ============================================================
+// SERIALIZERS — JS value → format text
+// ============================================================
+
+function serializeJson(data, opts) {
+  return JSON.stringify(data, null, opts.jsonIndent ?? 2);
+}
+
+function serializeNdjson(data) {
+  if (!Array.isArray(data)) return JSON.stringify(data);
+  return data.map(v => v === undefined ? 'null' : JSON.stringify(v)).join('\n');
+}
+
+function serializeYaml(data, opts) {
+  return window.jsyaml.dump(data, { indent: opts.yamlIndent ?? 2, lineWidth: -1, noRefs: true });
+}
+
+function serializeDelimited(records, delimiter) {
+  if (!Array.isArray(records)) throw new Error('Expected an array of records for tabular output');
+  if (records.length === 0) return '';
+  const keys = [...new Set(records.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
+  if (keys.length === 0) throw new Error('Records have no fields');
+  const escape = v => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') v = JSON.stringify(v);
+    const s = String(v);
+    if (s.includes(delimiter) || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+  const lines = [keys.map(escape).join(delimiter)];
+  for (const r of records) {
+    lines.push(keys.map(k => escape(r[k])).join(delimiter));
+  }
+  return lines.join('\n');
+}
+
+function serializeCsv(data, opts) { return serializeDelimited(data, csvDelimiter(opts && opts.csvDelimiterOut)); }
+function serializeTsv(data) { return serializeDelimited(data, '\t'); }
+
+function serializeXml(data, opts) {
+  const indent = opts.xmlIndent ?? 2;
+  const rootTag = opts.xmlRoot || 'rows';
+  const itemTag = opts.xmlItem || 'row';
+  if (Array.isArray(data)) {
+    const indStr = ' '.repeat(indent);
+    const lines = ['<?xml version="1.0" encoding="UTF-8"?>'];
+    lines.push('<' + rootTag + '>');
+    for (const r of data) {
+      if (r && typeof r === 'object' && !Array.isArray(r)) {
+        lines.push(indStr + '<' + itemTag + '>');
+        for (const [k, v] of Object.entries(r)) {
+          lines.push(indStr + indStr + objectToXmlLine(k, v, indent, 2));
+        }
+        lines.push(indStr + '</' + itemTag + '>');
+      } else {
+        lines.push(objectToXml(r, itemTag, indent, 1));
+      }
+    }
+    lines.push('</' + rootTag + '>');
+    return lines.join('\n');
+  }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + objectToXml(data, rootTag, indent, 0);
+}
+
+function objectToXmlLine(tag, val, indent, depth) {
+  if (val === null || val === undefined) return '<' + tag + '/>';
+  if (typeof val !== 'object') return '<' + tag + '>' + escapeXml(String(val)) + '</' + tag + '>';
+  return objectToXml(val, tag, indent, depth);
+}
+
+function objectToXml(obj, tag, indent, depth) {
+  const ind = ' '.repeat(indent * depth);
+  if (obj === null || obj === undefined) return ind + '<' + tag + '/>';
+  if (typeof obj !== 'object') return ind + '<' + tag + '>' + escapeXml(String(obj)) + '</' + tag + '>';
+  if (Array.isArray(obj)) {
+    return obj.map(item => objectToXml(item, tag, indent, depth)).join('\n');
+  }
+  // @-prefixed keys become attributes, #text becomes element text
+  let attrStr = '';
+  let text;
+  const childEntries = [];
+  for (const [k, v] of Object.entries(obj)) {
+    if (k[0] === '@' && k.length > 1 && (v === null || typeof v !== 'object')) {
+      attrStr += ' ' + k.slice(1) + '="' + escapeXml(v === null ? '' : String(v)) + '"';
+    } else if (k === '#text' && (v === null || typeof v !== 'object')) {
+      text = v;
+    } else {
+      childEntries.push([k, v]);
+    }
+  }
+  if (childEntries.length === 0) {
+    if (text === null || text === undefined) return ind + '<' + tag + attrStr + '/>';
+    return ind + '<' + tag + attrStr + '>' + escapeXml(String(text)) + '</' + tag + '>';
+  }
+  const lines = [ind + '<' + tag + attrStr + '>'];
+  if (text !== null && text !== undefined) {
+    lines.push(' '.repeat(indent * (depth + 1)) + escapeXml(String(text)));
+  }
+  for (const [k, v] of childEntries) {
+    lines.push(objectToXml(v, k, indent, depth + 1));
+  }
+  lines.push(ind + '</' + tag + '>');
+  return lines.join('\n');
+}
+
+function escapeXml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function serializeMarkdownTable(records) {
+  if (!Array.isArray(records)) throw new Error('Expected an array for Markdown table');
+  if (records.length === 0) return '';
+  const keys = [...new Set(records.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
+  if (keys.length === 0) throw new Error('Records have no fields');
+  const esc = v => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'object') v = JSON.stringify(v);
+    return String(v).replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+  };
+  const lines = [];
+  lines.push('| ' + keys.join(' | ') + ' |');
+  lines.push('|' + keys.map(() => '---').join('|') + '|');
+  for (const r of records) {
+    lines.push('| ' + keys.map(k => esc(r[k])).join(' | ') + ' |');
+  }
+  return lines.join('\n');
+}
+
+function serializeHtmlTable(records) {
+  if (!Array.isArray(records)) throw new Error('Expected an array for HTML table');
+  if (records.length === 0) return '';
+  const keys = [...new Set(records.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
+  if (keys.length === 0) throw new Error('Records have no fields');
+  const esc = v => {
+    if (v == null) return '';
+    if (typeof v === 'object') v = JSON.stringify(v);
+    return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  };
+  const lines = ['<table>'];
+  lines.push('  <thead>');
+  lines.push('    <tr>' + keys.map(k => '<th>' + esc(k) + '</th>').join('') + '</tr>');
+  lines.push('  </thead>');
+  lines.push('  <tbody>');
+  for (const r of records) {
+    lines.push('    <tr>' + keys.map(k => '<td>' + esc(r[k]) + '</td>').join('') + '</tr>');
+  }
+  lines.push('  </tbody>');
+  lines.push('</table>');
+  return lines.join('\n');
+}
+
+function sqlIdentQuoter(style) {
+  if (style === 'ansi') return id => '"' + String(id).replace(/"/g, '""') + '"';
+  if (style === 'bracket') return id => '[' + String(id).replace(/]/g, ']]') + ']';
+  return id => '`' + String(id).replace(/`/g, '``') + '`';
+}
+
+function serializeSqlInsert(records, opts) {
+  if (!Array.isArray(records)) throw new Error('Expected an array for SQL INSERT');
+  if (records.length === 0) return '';
+  const tableName = (opts.sqlTable || 'data').replace(/[^a-zA-Z0-9_]/g, '');
+  const q = sqlIdentQuoter(opts.sqlQuote);
+  const keys = [...new Set(records.flatMap(r => r && typeof r === 'object' ? Object.keys(r) : []))];
+  if (keys.length === 0) throw new Error('Records have no fields');
+  const fmt = v => {
+    if (v === null || v === undefined) return 'NULL';
+    if (typeof v === 'number') return v.toString();
+    if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+    if (typeof v === 'object') v = JSON.stringify(v);
+    return "'" + String(v).replace(/'/g, "''") + "'";
+  };
+  const colType = k => {
+    let type = null;
+    for (const r of records) {
+      const v = r[k];
+      if (v === null || v === undefined) continue;
+      let t;
+      if (typeof v === 'number') t = Number.isInteger(v) ? 'INTEGER' : 'REAL';
+      else if (typeof v === 'boolean') t = 'BOOLEAN';
+      else t = 'TEXT';
+      if (type === null) type = t;
+      else if (type !== t) type = (type + t === 'INTEGERREAL' || type + t === 'REALINTEGER') ? 'REAL' : 'TEXT';
+    }
+    return type || 'TEXT';
+  };
+  const lines = [];
+  lines.push('CREATE TABLE ' + q(tableName) + ' (');
+  keys.forEach((k, i) => {
+    lines.push('  ' + q(k) + ' ' + colType(k) + (i === keys.length - 1 ? '' : ','));
+  });
+  lines.push(');');
+  lines.push('');
+  lines.push('INSERT INTO ' + q(tableName) + ' (' + keys.map(q).join(', ') + ') VALUES');
+  for (let i = 0; i < records.length; i++) {
+    const vals = keys.map(k => fmt(records[i][k])).join(', ');
+    lines.push('  (' + vals + ')' + (i === records.length - 1 ? ';' : ','));
+  }
+  return lines.join('\n');
+}
+
+function serializeIni(data) {
+  if (data === null || data === undefined) return '';
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('INI output needs a top-level object. Wrap your array: e.g. { items: [...] }');
+  }
+  const lines = [];
+  iniEmit(data, [], lines);
+  return lines.join('\n').replace(/^\n+/, '');
+}
+
+function iniEmit(obj, path, lines) {
+  const sectionKeys = [];
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) sectionKeys.push(k);
+    else lines.push(k + ' = ' + iniFormatValue(v));
+  }
+  for (const k of sectionKeys) {
+    const subPath = path.concat([k]);
+    lines.push('');
+    lines.push('[' + subPath.join('.') + ']');
+    iniEmit(obj[k], subPath, lines);
+  }
+}
+
+function iniFormatValue(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+  // INI has no list syntax — arrays ride along as JSON strings
+  if (Array.isArray(v) || typeof v === 'object') v = JSON.stringify(v);
+  const s = String(v);
+  const ambiguous = s === '' || coerceScalar(s, {}) !== s ||
+    s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes('\t') ||
+    s !== s.trim();
+  if (!ambiguous) return s;
+  return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+}
+
+function serializeProperties(data) {
+  if (data === null || data === undefined) return '';
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Properties output needs a top-level object. Wrap your array: e.g. { items: [...] }');
+  }
+  const lines = [];
+  propEmit(data, [], lines);
+  return lines.join('\n');
+}
+
+function propEmit(obj, path, lines) {
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+      // Nested objects flatten into dotted keys (one-way: parse keeps keys flat)
+      propEmit(v, path.concat([k]), lines);
+    } else {
+      lines.push(propEscapeKey(path.concat([k]).join('.')) + ' = ' + propEscapeValue(v));
+    }
+  }
+}
+
+function propEscapeKey(k) {
+  return String(k)
+    .replace(/\\/g, '\\\\')
+    .replace(/=/g, '\\=')
+    .replace(/:/g, '\\:')
+    .replace(/ /g, '\\ ')
+    .replace(/\t/g, '\\t')
+    .replace(/\n/g, '\\n')
+    .replace(/^([#!])/, '\\$1');
+}
+
+function propEscapeValue(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'object') v = JSON.stringify(v);
+  return String(v)
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+    .replace(/\f/g, '\\f')
+    .replace(/^ /, '\\ ');
+}
+
+// ============================================================
+// TOML — small focused parser + serializer, ~350 lines.
+// Supports TOML 1.0 subset: key=value, strings (basic + literal),
+// numbers (int/float, underscores, hex/octal/binary), booleans, arrays,
+// inline tables, [section], [a.b.c], [[array-of-tables]], dotted keys
+// (a.b = 1), offset datetimes, comments, multi-line strings ("""basic"""
+// with escapes + line-ending backslash, '''literal''').
+// ============================================================
+
+function parseToml(text) {
+  const root = {};
+  let current = root;
+  const arrayOfTablesMarker = new Set();
+  const entries = tomlJoinMultilineStrings(text.split(/\r?\n/));
+  let lineNo = 0;
+  const err = msg => { throw new Error(`TOML line ${lineNo}: ${msg}`); };
+
+  for (const entry of entries) {
+    lineNo = entry.no;
+    const line = tomlStripComment(entry.text);
+    if (!line) continue;
+
+    if (line.startsWith('[[') && line.endsWith(']]')) {
+      const pathStr = line.slice(2, -2).trim();
+      if (!pathStr) err('empty array-of-tables header');
+      const path = tomlParseKeyPath(pathStr, err);
+      const { parent, key } = tomlDescendForWrite(root, path, err);
+      if (!(key in parent)) parent[key] = [];
+      if (!Array.isArray(parent[key])) err(`[[${pathStr}]] conflicts with existing non-array value`);
+      const elem = {};
+      parent[key].push(elem);
+      current = elem;
+      arrayOfTablesMarker.add(path.join('.'));
+      continue;
+    }
+    if (line.startsWith('[') && line.endsWith(']')) {
+      const pathStr = line.slice(1, -1).trim();
+      if (!pathStr) err('empty table header');
+      const path = tomlParseKeyPath(pathStr, err);
+      const { parent, key } = tomlDescendForWrite(root, path, err);
+      if (arrayOfTablesMarker.has(path.join('.'))) err(`cannot redefine array-of-tables [[${pathStr}]] as [${pathStr}]`);
+      if (!(key in parent)) parent[key] = {};
+      else if (typeof parent[key] !== 'object' || Array.isArray(parent[key])) err(`[${pathStr}] conflicts with existing non-object value`);
+      current = parent[key];
+      continue;
+    }
+    const eqIdx = tomlFindUnquoted(line, '=');
+    if (eqIdx < 0) err('expected "key = value" or "[section]"');
+    const keyRaw = line.slice(0, eqIdx).trim();
+    const valRaw = line.slice(eqIdx + 1).trim();
+    if (!keyRaw) err('empty key');
+    if (!valRaw) err('empty value');
+    const keyPath = tomlParseKeyPath(keyRaw, err);
+    const value = tomlParseValue(valRaw, err);
+    const { parent, key } = tomlDescendForWrite(current, keyPath, err);
+    if (key in parent) err(`duplicate key "${key}"`);
+    parent[key] = value;
+  }
+  return root;
+}
+
+// Pre-pass: normalize """basic""" and '''literal''' multi-line strings
+// into ordinary single-line basic-string tokens before the line-based
+// parser runs. The quote-tracking helpers (tomlStripComment,
+// tomlFindUnquoted, tomlSplitTopLevel) never see a multi-line form, so
+// they stay simple. Each returned logical line carries the physical
+// line it started on, keeping error line numbers accurate.
+function tomlJoinMultilineStrings(physicalLines) {
+  const entries = [];
+  const errAt = (no, msg) => { throw new Error(`TOML line ${no}: ${msg}`); };
+  let i = 0;
+  while (i < physicalLines.length) {
+    const startNo = i + 1;
+    let out = '';
+    let line = physicalLines[i];
+    let pos = 0;
+    let inStr = null;
+    while (pos < line.length) {
+      const c = line[pos];
+      if (inStr === '"') {
+        if (c === '\\' && pos + 1 < line.length) { out += c + line[pos + 1]; pos += 2; continue; }
+        out += c; pos++;
+        if (c === '"') inStr = null;
+        continue;
+      }
+      if (inStr === "'") {
+        out += c; pos++;
+        if (c === "'") inStr = null;
+        continue;
+      }
+      if (c === '#') { out += line.slice(pos); break; }
+      if (line.startsWith('"""', pos) || line.startsWith("'''", pos)) {
+        const basic = c === '"';
+        const closer = basic ? '"""' : "'''";
+        const openLine = i + 1;
+        pos += 3;
+        let raw = '';
+        // A newline immediately after the opening delimiter is trimmed
+        if (pos >= line.length) {
+          i++;
+          if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+          line = physicalLines[i];
+          pos = 0;
+        }
+        for (;;) {
+          if (line.startsWith(closer, pos)) { pos += 3; break; }
+          if (pos >= line.length) {
+            raw += '\n';
+            i++;
+            if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+            line = physicalLines[i];
+            pos = 0;
+            continue;
+          }
+          const ch = line[pos];
+          if (basic && ch === '\\') {
+            if (/^\s*$/.test(line.slice(pos + 1))) {
+              // Line-ending backslash: trim the newline and all
+              // following whitespace up to the next non-blank content
+              i++;
+              while (i < physicalLines.length && physicalLines[i].trim() === '') i++;
+              if (i >= physicalLines.length) errAt(openLine, 'unterminated multi-line string');
+              line = physicalLines[i].replace(/^\s+/, '');
+              pos = 0;
+              continue;
+            }
+            raw += ch + line[pos + 1];
+            pos += 2;
+            continue;
+          }
+          raw += ch;
+          pos++;
+        }
+        const value = basic
+          ? tomlParseBasicString('"' + raw + '"', msg => errAt(openLine, msg))
+          : raw;
+        out += tomlFormatValue(value);
+        continue;
+      }
+      if (c === '"' || c === "'") { inStr = c; out += c; pos++; continue; }
+      out += c;
+      pos++;
+    }
+    entries.push({ text: out, no: startNo });
+    i++;
+  }
+  return entries;
+}
+
+function tomlStripComment(line) {
+  let inStr = null;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inStr) {
+      if (c === '\\' && inStr === '"' && i + 1 < line.length) { i++; continue; }
+      if (c === inStr) inStr = null;
+    } else {
+      if (c === '"' || c === "'") inStr = c;
+      else if (c === '#') return line.slice(0, i).trim();
+    }
+  }
+  return line.trim();
+}
+
+function tomlFindUnquoted(s, ch) {
+  let inStr = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      if (c === '\\' && inStr === '"' && i + 1 < s.length) { i++; continue; }
+      if (c === inStr) inStr = null;
+    } else {
+      if (c === '"' || c === "'") inStr = c;
+      else if (c === ch) return i;
+    }
+  }
+  return -1;
+}
+
+function tomlParseKeyPath(pathStr, err) {
+  const parts = [];
+  let buf = '', inStr = null;
+  for (let i = 0; i < pathStr.length; i++) {
+    const c = pathStr[i];
+    if (inStr) {
+      if (c === '\\' && inStr === '"' && i + 1 < pathStr.length) { buf += c + pathStr[++i]; continue; }
+      buf += c;
+      if (c === inStr) inStr = null;
+    } else {
+      if (c === '"' || c === "'") { inStr = c; buf += c; }
+      else if (c === '.') {
+        const k = tomlParseKeySingle(buf.trim(), err);
+        parts.push(k);
+        buf = '';
+      } else buf += c;
+    }
+  }
+  parts.push(tomlParseKeySingle(buf.trim(), err));
+  return parts;
+}
+
+function tomlParseKeySingle(k, err) {
+  if (!k) err('empty key');
+  if (k[0] === '"' && k[k.length - 1] === '"') return tomlParseBasicString(k, err);
+  if (k[0] === "'" && k[k.length - 1] === "'") return k.slice(1, -1);
+  if (!/^[A-Za-z0-9_-]+$/.test(k)) err(`invalid bare key "${k}" — quote if it has special chars`);
+  return k;
+}
+
+function tomlDescendForWrite(root, path, err) {
+  let node = root;
+  for (let i = 0; i < path.length - 1; i++) {
+    const seg = path[i];
+    if (!(seg in node)) node[seg] = {};
+    else if (Array.isArray(node[seg])) { node = node[seg][node[seg].length - 1]; continue; }
+    else if (typeof node[seg] !== 'object') err(`path "${path.slice(0, i + 1).join('.')}" is not a table`);
+    node = node[seg];
+  }
+  return { parent: node, key: path[path.length - 1] };
+}
+
+function tomlParseValue(s, err) {
+  const c = s[0];
+  if (c === '"') return tomlParseBasicString(s, err);
+  if (c === "'") return tomlParseLiteralString(s, err);
+  if (c === '[') return tomlParseArray(s, err);
+  if (c === '{') return tomlParseInlineTable(s, err);
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const d = tomlParseDateTime(s);
+    if (d) return d;
+  }
+  return tomlParseNumber(s, err);
+}
+
+function tomlParseBasicString(s, err) {
+  if (s.length < 2 || s[0] !== '"' || s[s.length - 1] !== '"') err(`malformed basic string: ${s.slice(0, 20)}`);
+  let out = '';
+  for (let i = 1; i < s.length - 1; i++) {
+    const c = s[i];
+    if (c === '\\') {
+      const n = s[++i];
+      if (n === 'n') out += '\n';
+      else if (n === 't') out += '\t';
+      else if (n === 'r') out += '\r';
+      else if (n === '"') out += '"';
+      else if (n === '\\') out += '\\';
+      else if (n === '/') out += '/';
+      else if (n === 'b') out += '\b';
+      else if (n === 'f') out += '\f';
+      else if (n === 'u') {
+        const hex = s.slice(i + 1, i + 5);
+        if (!/^[0-9a-fA-F]{4}$/.test(hex)) err(`invalid \\uXXXX escape`);
+        out += String.fromCharCode(parseInt(hex, 16));
+        i += 4;
+      } else err(`invalid escape \\${n}`);
+    } else out += c;
+  }
+  return out;
+}
+
+function tomlParseLiteralString(s, err) {
+  if (s.length < 2 || s[0] !== "'" || s[s.length - 1] !== "'") err(`malformed literal string: ${s.slice(0, 20)}`);
+  return s.slice(1, -1);
+}
+
+function tomlParseNumber(s, err) {
+  const normalized = s.replace(/_/g, '');
+  if (/^0x[0-9a-fA-F]+$/.test(normalized)) return parseInt(normalized.slice(2), 16);
+  if (/^0o[0-7]+$/.test(normalized)) return parseInt(normalized.slice(2), 8);
+  if (/^0b[01]+$/.test(normalized)) return parseInt(normalized.slice(2), 2);
+  if (/^[+-]?\d+$/.test(normalized)) {
+    const n = parseInt(normalized, 10);
+    if (!Number.isFinite(n)) err(`integer out of range: ${s}`);
+    return n;
+  }
+  if (/^[+-]?(\d+\.\d+|\.\d+|\d+\.)([eE][+-]?\d+)?$/.test(normalized) || /^[+-]?\d+[eE][+-]?\d+$/.test(normalized)) {
+    const n = parseFloat(normalized);
+    if (!Number.isFinite(n)) err(`float out of range: ${s}`);
+    return n;
+  }
+  if (normalized === 'inf' || normalized === '+inf') return Infinity;
+  if (normalized === '-inf') return -Infinity;
+  if (normalized === 'nan' || normalized === '+nan' || normalized === '-nan') return NaN;
+  err(`unrecognized value: ${s}`);
+}
+
+function tomlParseDateTime(s) {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(s)) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (/^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+    const d = new Date(s.replace(' ', 'T'));
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function tomlParseArray(s, err) {
+  if (s[0] !== '[' || s[s.length - 1] !== ']') err(`malformed array: ${s.slice(0, 20)}`);
+  const inner = s.slice(1, -1).trim();
+  if (!inner) return [];
+  return tomlSplitTopLevel(inner, ',').map(item => tomlParseValue(item.trim(), err));
+}
+
+function tomlParseInlineTable(s, err) {
+  if (s[0] !== '{' || s[s.length - 1] !== '}') err(`malformed inline table: ${s.slice(0, 20)}`);
+  const inner = s.slice(1, -1).trim();
+  if (!inner) return {};
+  const obj = {};
+  for (const pair of tomlSplitTopLevel(inner, ',')) {
+    const eqIdx = tomlFindUnquoted(pair, '=');
+    if (eqIdx < 0) err(`inline table entry missing "=": ${pair}`);
+    const k = tomlParseKeySingle(pair.slice(0, eqIdx).trim(), err);
+    obj[k] = tomlParseValue(pair.slice(eqIdx + 1).trim(), err);
+  }
+  return obj;
+}
+
+function tomlSplitTopLevel(s, sep) {
+  const parts = [];
+  let buf = '', depthArr = 0, depthObj = 0, inStr = null;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      buf += c;
+      if (c === '\\' && inStr === '"' && i + 1 < s.length) { buf += s[++i]; continue; }
+      if (c === inStr) inStr = null;
+      continue;
+    }
+    if (c === '"' || c === "'") { inStr = c; buf += c; continue; }
+    if (c === '[') depthArr++;
+    else if (c === ']') depthArr--;
+    else if (c === '{') depthObj++;
+    else if (c === '}') depthObj--;
+    else if (c === sep && depthArr === 0 && depthObj === 0) { parts.push(buf); buf = ''; continue; }
+    buf += c;
+  }
+  if (buf.trim()) parts.push(buf);
+  return parts;
+}
+
+function parseToml_wrap(text) { return parseToml(text); }
+
+function serializeToml(data) {
+  if (data === null || data === undefined) return '';
+  if (typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('TOML output needs a top-level object. Wrap your array: e.g. { items: [...] }');
+  }
+  const lines = [];
+  tomlEmit(data, [], lines);
+  return lines.join('\n').replace(/^\n+/, '');  // trim leading blank line
+}
+
+function tomlEmit(obj, path, lines) {
+  const tableKeys = [], arrayOfTableKeys = [];
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    if (v === null || v === undefined) continue;
+    if (tomlIsPlainObject(v)) tableKeys.push(k);
+    else if (Array.isArray(v) && v.length && v.every(tomlIsPlainObject)) arrayOfTableKeys.push(k);
+    else lines.push(tomlFormatKey(k) + ' = ' + tomlFormatValue(v));
+  }
+  for (const k of tableKeys) {
+    const subPath = path.concat([k]);
+    lines.push('');
+    lines.push('[' + subPath.map(tomlFormatKey).join('.') + ']');
+    tomlEmit(obj[k], subPath, lines);
+  }
+  for (const k of arrayOfTableKeys) {
+    const subPath = path.concat([k]);
+    for (const item of obj[k]) {
+      lines.push('');
+      lines.push('[[' + subPath.map(tomlFormatKey).join('.') + ']]');
+      tomlEmit(item, subPath, lines);
+    }
+  }
+}
+
+function tomlIsPlainObject(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date);
+}
+
+function tomlFormatKey(k) {
+  if (/^[A-Za-z0-9_-]+$/.test(k)) return k;
+  return '"' + k.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+function tomlFormatValue(v) {
+  if (v === null || v === undefined) return '""';
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v)) return Number.isNaN(v) ? 'nan' : (v > 0 ? 'inf' : '-inf');
+    return String(v);
+  }
+  if (typeof v === 'string') {
+    return '"' + v.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+  }
+  if (v instanceof Date) return v.toISOString();
+  if (Array.isArray(v)) return '[' + v.map(tomlFormatValue).join(', ') + ']';
+  if (typeof v === 'object') {
+    const parts = [];
+    for (const k of Object.keys(v)) parts.push(tomlFormatKey(k) + ' = ' + tomlFormatValue(v[k]));
+    return '{ ' + parts.join(', ') + ' }';
+  }
+  return JSON.stringify(v);
+}
+
+// Registry
+const PARSERS = { json: parseJson, ndjson: parseNdjson, yaml: parseYaml, toml: parseToml, ini: parseIni, properties: parseProperties, csv: parseCsv, tsv: parseTsv, xml: parseXml, md: parseMarkdownTable, html: parseHtmlTable, sql: parseSqlInsert };
+const SERIALIZERS = { json: serializeJson, ndjson: serializeNdjson, yaml: serializeYaml, toml: serializeToml, ini: serializeIni, properties: serializeProperties, csv: serializeCsv, tsv: serializeTsv, xml: serializeXml, md: serializeMarkdownTable, html: serializeHtmlTable, sql: serializeSqlInsert };
+const FORMAT_LABELS = { json: 'JSON', ndjson: 'NDJSON', yaml: 'YAML', toml: 'TOML', ini: 'INI', properties: 'Properties', csv: 'CSV', tsv: 'TSV', xml: 'XML', md: 'Markdown', html: 'HTML', sql: 'SQL' };
+const FORMAT_EXT = { json: 'json', ndjson: 'ndjson', yaml: 'yaml', toml: 'toml', ini: 'ini', properties: 'properties', csv: 'csv', tsv: 'tsv', xml: 'xml', md: 'md', html: 'html', sql: 'sql' };
+
+// ============================================================
+// State + rendering
+// ============================================================
+const state = {
+  from: 'json',
+  to: 'toml',
+  source: '',
+  opts: {
+    jsonIndent: 2,
+    yamlIndent: 2,
+    xmlIndent: 2,
+    xmlRoot: 'rows',
+    xmlItem: 'row',
+    sqlTable: 'data',
+    sqlQuote: 'backtick',
+    coerceTypes: true,
+    strictParse: false,
+    csvDelimiterIn: 'comma',
+    csvDelimiterOut: 'comma',
+  },
+};
+
+const DELIM_CHOICES = [
+  { v: 'comma', label: 'Comma (,)' },
+  { v: 'semicolon', label: 'Semicolon (;)' },
+  { v: 'pipe', label: 'Pipe (|)' },
+  { v: 'tab', label: 'Tab' },
+];
+
+function setSourceError(message) {
+  const srcEl = $('#sourceInput');
+  const errEl = $('#sourceError');
+  if (message) {
+    errEl.textContent = message;
+    errEl.classList.add('show');
+    srcEl.setAttribute('aria-invalid', 'true');
+    srcEl.setAttribute('aria-describedby', 'sourceError');
+  } else {
+    errEl.classList.remove('show');
+    srcEl.removeAttribute('aria-invalid');
+    srcEl.removeAttribute('aria-describedby');
+  }
+}
+
+function convert() {
+  const src = $('#sourceInput').value;
+  state.source = src;
+  const outEl = $('#outputArea');
+
+  if (!src.trim()) {
+    outEl.value = '';
+    setSourceError(null);
+    return;
+  }
+
+  let data;
+  try {
+    data = PARSERS[state.from](src, state.opts);
+  } catch (err) {
+    setSourceError('Parse error: ' + err.message);
+    outEl.value = '';
+    return;
+  }
+  setSourceError(null);
+
+  try {
+    const out = SERIALIZERS[state.to](data, state.opts);
+    outEl.value = out;
+  } catch (err) {
+    setSourceError('Conversion error: ' + err.message);
+    outEl.value = '';
+  }
+}
+
+// ============================================================
+// Options rendering (contextual to selected formats)
+// ============================================================
+function renderOptions() {
+  const body = $('#optionsBody');
+  body.innerHTML = '';
+  const opts = [];
+
+  // Output-side options
+  if (state.to === 'json') {
+    opts.push({ type: 'number', key: 'jsonIndent', label: 'Indent', min: 0, max: 8, val: state.opts.jsonIndent });
+  }
+  if (state.to === 'yaml') {
+    opts.push({ type: 'number', key: 'yamlIndent', label: 'Indent', min: 1, max: 8, val: state.opts.yamlIndent });
+  }
+  if (state.to === 'xml') {
+    opts.push({ type: 'number', key: 'xmlIndent', label: 'Indent', min: 0, max: 8, val: state.opts.xmlIndent });
+    opts.push({ type: 'text', key: 'xmlRoot', label: 'Root tag', val: state.opts.xmlRoot });
+    opts.push({ type: 'text', key: 'xmlItem', label: 'Item tag', val: state.opts.xmlItem });
+  }
+  if (state.to === 'sql') {
+    opts.push({ type: 'text', key: 'sqlTable', label: 'Table name', val: state.opts.sqlTable });
+    opts.push({ type: 'select', key: 'sqlQuote', label: 'Identifier quotes', val: state.opts.sqlQuote, choices: [
+      { v: 'backtick', label: 'MySQL  `id`' },
+      { v: 'ansi', label: 'ANSI  "id"' },
+      { v: 'bracket', label: 'SQL Server  [id]' },
+    ] });
+  }
+  if (state.to === 'csv') {
+    opts.push({ type: 'select', key: 'csvDelimiterOut', label: 'Output delimiter', val: state.opts.csvDelimiterOut, choices: DELIM_CHOICES });
+  }
+
+  // Input-side options
+  if (state.from === 'csv') {
+    opts.push({ type: 'select', key: 'csvDelimiterIn', label: 'Input delimiter', val: state.opts.csvDelimiterIn, choices: DELIM_CHOICES });
+  }
+  if (['csv', 'tsv', 'md'].includes(state.from)) {
+    opts.push({ type: 'checkbox', key: 'strictParse', label: 'Strict parsing', val: state.opts.strictParse });
+  }
+  if (['csv', 'tsv', 'md', 'html', 'xml', 'sql', 'ini', 'properties'].includes(state.from)) {
+    opts.push({ type: 'checkbox', key: 'coerceTypes', label: 'Coerce types', val: state.opts.coerceTypes });
+  }
+
+  if (opts.length === 0) {
+    body.innerHTML = '<span class="options-empty">No options for this conversion</span>';
+    return;
+  }
+
+  for (const o of opts) {
+    const group = document.createElement('div');
+    group.className = 'opt-group';
+    if (o.type === 'checkbox') {
+      const checkLab = document.createElement('label');
+      checkLab.className = 'opt-check';
+      const checkInp = document.createElement('input');
+      checkInp.type = 'checkbox';
+      checkInp.id = 'opt-' + o.key;
+      checkInp.checked = o.val;
+      checkInp.addEventListener('change', () => {
+        state.opts[o.key] = checkInp.checked;
+        convert();
+        syncUrl();
+      });
+      checkLab.appendChild(checkInp);
+      checkLab.appendChild(document.createTextNode(o.label));
+      group.appendChild(checkLab);
+      body.appendChild(group);
+      continue;
+    }
+    if (o.type === 'select') {
+      const selLab = document.createElement('label');
+      selLab.textContent = o.label;
+      selLab.setAttribute('for', 'opt-' + o.key);
+      group.appendChild(selLab);
+      const sel = document.createElement('select');
+      sel.id = 'opt-' + o.key;
+      sel.className = 'opt-input opt-select';
+      for (const c of o.choices) {
+        const optEl = document.createElement('option');
+        optEl.value = c.v;
+        optEl.textContent = c.label;
+        sel.appendChild(optEl);
+      }
+      sel.value = o.val;
+      sel.addEventListener('change', () => {
+        state.opts[o.key] = sel.value;
+        convert();
+        syncUrl();
+      });
+      group.appendChild(sel);
+      body.appendChild(group);
+      continue;
+    }
+    const lab = document.createElement('label');
+    lab.textContent = o.label;
+    lab.setAttribute('for', 'opt-' + o.key);
+    group.appendChild(lab);
+    const inp = document.createElement('input');
+    inp.id = 'opt-' + o.key;
+    inp.className = 'opt-input';
+    inp.type = o.type;
+    inp.value = o.val;
+    if (o.min !== undefined) inp.min = o.min;
+    if (o.max !== undefined) inp.max = o.max;
+    inp.addEventListener('input', e => {
+      const v = o.type === 'number' ? parseInt(e.target.value) : e.target.value;
+      state.opts[o.key] = v;
+      convert();
+      syncUrl();
+    });
+    group.appendChild(inp);
+    body.appendChild(group);
+  }
+}
+
+// ============================================================
+// Samples
+// ============================================================
+const SAMPLES = {
+  users: {
+    json: `[
+  { "id": 1, "name": "Ada Lovelace", "email": "ada@example.com", "active": true },
+  { "id": 2, "name": "Alan Turing", "email": "alan@example.com", "active": false },
+  { "id": 3, "name": "Grace Hopper", "email": "grace@example.com", "active": true }
+]`
+  },
+  products: {
+    json: `[
+  { "sku": "BOOK-001", "name": "Pride & Prejudice", "price": 12.99, "stock": 42 },
+  { "sku": "BOOK-002", "name": "Moby Dick", "price": 15.50, "stock": 17 },
+  { "sku": "BOOK-003", "name": "The Odyssey", "price": 9.99, "stock": 88 }
+]`
+  },
+  config: {
+    yaml: `server:
+  host: localhost
+  port: 8080
+  tls: true
+database:
+  url: postgres://user:pass@db/app
+  pool: 10
+features:
+  - logging
+  - caching
+  - rate-limiting`
+  },
+  tasks: {
+    csv: `id,title,done,priority,due
+1,Ship v6,false,high,2026-04-22
+2,Write release notes,false,med,2026-04-23
+3,Update changelog,true,low,2026-04-21
+4,Send announcement,false,med,2026-04-25`
+  },
+  logs: {
+    ndjson: `{"ts":"2026-07-04T12:00:01Z","level":"info","msg":"server started","port":8080}
+{"ts":"2026-07-04T12:00:07Z","level":"warn","msg":"slow query","ms":412}
+{"ts":"2026-07-04T12:01:13Z","level":"error","msg":"upstream timeout","service":"billing"}
+{"ts":"2026-07-04T12:01:14Z","level":"info","msg":"retry succeeded","service":"billing"}`
+  },
+  settings: {
+    ini: `; app settings
+[app]
+name = Flipper
+version = "1.2"
+
+[window]
+width = 1280
+height = 800
+fullscreen = false
+
+[paths]
+data = ~/flipper/data
+cache = ~/flipper/cache`
+  },
+};
+
+// ============================================================
+// Event wiring
+// ============================================================
+let debounceTimer;
+function scheduleConvert() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(convert, 100);
+}
+
+$('#sourceInput').addEventListener('input', scheduleConvert);
+
+$('#fromSelect').addEventListener('change', e => {
+  state.from = e.target.value;
+  $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+  renderOptions();
+  convert();
+  syncUrl();
+});
+
+$('#toSelect').addEventListener('change', e => {
+  state.to = e.target.value;
+  $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
+  renderOptions();
+  convert();
+  syncUrl();
+});
+
+$('#swapBtn').addEventListener('click', () => {
+  const tmp = state.from;
+  state.from = state.to;
+  state.to = tmp;
+  $('#fromSelect').value = state.from;
+  $('#toSelect').value = state.to;
+  $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+  $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
+  // Swap contents (output becomes new source)
+  const oldOut = $('#outputArea').value;
+  const oldSrc = $('#sourceInput').value;
+  $('#sourceInput').value = oldOut;
+  renderOptions();
+  convert();
+  syncUrl();
+  showToast('Swapped ' + FORMAT_LABELS[state.to].toLowerCase() + ' → ' + FORMAT_LABELS[state.from].toLowerCase());
+});
+
+$('#clearBtn').addEventListener('click', () => {
+  $('#sourceInput').value = '';
+  convert();
+});
+
+$('#pasteBtn').addEventListener('click', async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    $('#sourceInput').value = text;
+    convert();
+    showToast('Pasted from clipboard');
+  } catch {
+    showToast('Clipboard paste blocked — paste manually');
+  }
+});
+
+$('#copyBtn').addEventListener('click', async () => {
+  const out = $('#outputArea').value;
+  if (!out) { showToast('Nothing to copy'); return; }
+  try {
+    await navigator.clipboard.writeText(out);
+    showToast(FORMAT_LABELS[state.to] + ' copied');
+  } catch {
+    showToast('Copy blocked — select manually');
+  }
+});
+
+$('#downloadBtn').addEventListener('click', () => {
+  const out = $('#outputArea').value;
+  if (!out) { showToast('Nothing to download'); return; }
+  const stamp = new Date().toISOString().split('T')[0];
+  const ext = FORMAT_EXT[state.to];
+  const mime = state.to === 'json' ? 'application/json' :
+               state.to === 'ndjson' ? 'application/x-ndjson' :
+               state.to === 'csv' ? 'text/csv' :
+               state.to === 'html' ? 'text/html' :
+               state.to === 'xml' ? 'application/xml' :
+               'text/plain';
+  const blob = new Blob([out], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `converted-${stamp}.${ext}`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Downloaded');
+});
+
+// Samples
+$$('.sample-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const key = chip.dataset.sample;
+    const s = SAMPLES[key];
+    if (!s) return;
+    // Use the first format available in the sample, set that as 'from'
+    const fmt = Object.keys(s)[0];
+    state.from = fmt;
+    $('#fromSelect').value = fmt;
+    $('#sourceInput').value = s[fmt];
+    $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[fmt];
+    renderOptions();
+    convert();
+    syncUrl();
+    showToast('Loaded: ' + chip.textContent);
+  });
+});
+
+// Keyboard shortcuts (Cmd/Ctrl+K belongs to the site-wide command palette)
+document.addEventListener('keydown', e => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key === 'Enter') {
+    e.preventDefault();
+    convert();
+    showToast('Converted');
+    return;
+  }
+  if (mod && e.shiftKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    $('#swapBtn').click();
+    return;
+  }
+  if (mod && e.shiftKey && e.key.toLowerCase() === 'l') {
+    e.preventDefault();
+    copyShareLink();
+    return;
+  }
+  if (e.key === 'Escape') $('#toast').classList.remove('show');
+});
+
+function showToast(msg) {
+  const toast = $('#toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// URL settings sync — fragment only; source data is never serialized
+// ============================================================
+const OPT_DEFAULTS = { ...state.opts };
+const URL_ENUMS = {
+  csvDelimiterIn: ['comma', 'semicolon', 'pipe', 'tab'],
+  csvDelimiterOut: ['comma', 'semicolon', 'pipe', 'tab'],
+  sqlQuote: ['backtick', 'ansi', 'bracket'],
+};
+const URL_INTS = { jsonIndent: [0, 8], yamlIndent: [1, 8], xmlIndent: [0, 8] };
+const URL_BOOLS = ['coerceTypes', 'strictParse'];
+
+function serializeSettings() {
+  const params = new URLSearchParams();
+  params.set('from', state.from);
+  params.set('to', state.to);
+  for (const key of Object.keys(OPT_DEFAULTS)) {
+    const val = state.opts[key];
+    if (val === OPT_DEFAULTS[key]) continue;
+    if (URL_BOOLS.includes(key)) params.set(key, val ? '1' : '0');
+    else params.set(key, String(val));
+  }
+  return params.toString();
+}
+
+function syncUrl() {
+  try {
+    const qs = serializeSettings();
+    history.replaceState(null, '', qs ? '#' + qs : location.pathname + location.search);
+  } catch (e) {
+    // URL sync must never break conversion
+  }
+}
+
+function applyUrlSettings() {
+  try {
+    const hash = location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    const from = params.get('from');
+    const to = params.get('to');
+    if (from && FORMAT_LABELS[from]) state.from = from;
+    if (to && FORMAT_LABELS[to]) state.to = to;
+    for (const key of Object.keys(OPT_DEFAULTS)) {
+      if (!params.has(key)) continue;
+      const raw = params.get(key);
+      if (URL_BOOLS.includes(key)) { state.opts[key] = raw !== '0'; continue; }
+      if (key in URL_INTS) {
+        const n = parseInt(raw);
+        if (Number.isFinite(n)) {
+          state.opts[key] = Math.min(URL_INTS[key][1], Math.max(URL_INTS[key][0], n));
+        }
+        continue;
+      }
+      if (key in URL_ENUMS) {
+        if (URL_ENUMS[key].includes(raw)) state.opts[key] = raw;
+        continue;
+      }
+      state.opts[key] = raw;
+    }
+    $('#fromSelect').value = state.from;
+    $('#toSelect').value = state.to;
+    $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[state.from];
+    $('#outputHeadTitle').textContent = 'Output · ' + FORMAT_LABELS[state.to];
+  } catch (e) {
+    // Malformed fragments are ignored
+  }
+}
+
+function copyShareLink() {
+  syncUrl();
+  const url = location.href.split('#')[0] + '#' + serializeSettings();
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('Settings link copied — your data stays on your device');
+  }).catch(() => {
+    showToast('Copy blocked — copy the address bar URL');
+  });
+}
+
+$('#shareBtn').addEventListener('click', copyShareLink);
+
+// Init
+const MOD = /Mac|iP/.test(navigator.platform) ? '⌘' : 'Ctrl';
+$('#swapBtn').title = 'Swap from/to (' + MOD + '+Shift+S)';
+$('#shareBtn').title = 'Copy a link to these settings (' + MOD + '+Shift+L)';
+applyUrlSettings();
+renderOptions();
+convert();
+
+})();
+</script>
+
+</body>
+</html>
