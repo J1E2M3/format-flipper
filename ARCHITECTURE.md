@@ -200,4 +200,4 @@ The whole tool is one HTML file because:
 - **Fast.** No framework boot time. 40 ms to interactive on a 2024 MacBook.
 - **Auditable.** You can read the entire tool in ~4000 lines of HTML+JS.
 
-If you want to extract the parsers into a proper npm package for server-side use, you're welcome to — the MIT license permits it. An organized extraction is on the project roadmap as a follow-on release.
+The parsers are also published as a proper npm package for server-side use: [`packages/format-flipper`](./packages/format-flipper/) ships the same engine as a Node library and CLI. The package's `engine.js` is *generated* from index.html by `tools/build-package.js` (the same marker extraction the test harness uses), so index.html remains the single source of truth and the published code is byte-identical to what the browser runs — CI fails if the generated copy drifts.

@@ -18,6 +18,19 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: node test/run.js
 
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: node tools/build-package.js --check
+      - run: npm install --no-audit --no-fund
+        working-directory: packages/format-flipper
+      - run: node cli-smoke.js
+        working-directory: packages/format-flipper
+
   browser-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
