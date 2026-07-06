@@ -14,6 +14,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-bNdWBeyzGwMSodNwsPD6OohdV+UGCND++2fVg5wTTgk='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <title>Format Flipper — Convert JSON, YAML, CSV, XML, SQL · Tooly McToolface</title>
 <meta name="description" content="Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 12 formats, any direction. Free, in your browser.">
 <meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
@@ -65,7 +66,78 @@
   ]
 }
 </script>
-
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Can I convert between any two formats?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — all 132 directions are supported. The data flows through an in-memory JavaScript value between every pair, so you can go JSON → TOML → SQL → YAML and back without losing anything (as long as the structure is tabular or JSON-compatible)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What's tabular data?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "An array of objects that all share the same keys. Like a spreadsheet. CSV, TSV, Markdown tables, HTML tables, and SQL all need this shape. NDJSON carries records naturally too — one JSON object per line. JSON and YAML can handle nested data too, but when converting to tabular formats, nesting gets flattened or rejected."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you handle quotes and special characters?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each format's escaping rules are respected. CSV wraps fields with commas, quotes, or newlines in double quotes. SQL escapes apostrophes by doubling them (O''Brien). YAML and XML use their standard escape mechanisms."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is anything uploaded?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. All parsing and serialization happens in your browser. Your data never leaves your device. Even the js-yaml library that powers YAML support ships bundled inside this page — nothing is fetched from a server for conversion. Settings links encode only your format and option choices in the URL fragment — never your data."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What about very large files?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The tool handles multi-megabyte files but slows down past ~10,000 rows in the browser. For truly big data, use jq (for JSON), csvkit (for CSV), or write a script. This tool is for quick flips, not giant ETL jobs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When should I pick JSON vs YAML vs TOML?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Short version: JSON when machines are the primary audience, YAML when deeply-nested humans are, TOML when flat humans are. For the long version with a decision matrix and five gotchas (including the YAML Norway problem), see our guide: JSON vs YAML vs TOML: when to use what."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there keyboard shortcuts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes: Ctrl/⌘+Enter converts, Ctrl/⌘+Shift+S swaps the from/to formats, Ctrl/⌘+Shift+L copies a settings link, and Esc dismisses the toast. Ctrl/⌘+K opens the site-wide command palette."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What about XLSX?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not yet. XLSX parsing would nearly double the page size because the format is essentially a zipped XML archive. For now, if you have an XLSX file, open it in a spreadsheet app and save as CSV first. XLSX support is on the list for a future version."
+      }
+    }
+  ]
+}
+</script>
 
 <style>
   /* Self-hosted fonts (latin subsets, mirrored from Google Fonts) — no third-party
@@ -556,7 +628,10 @@
   }
 </style>
 <script defer src="/commandk.js"></script>
-<script defer data-domain="toolymctoolface.com" src="https://plausible.io/js/script.outbound-links.js"></script>
+<!-- SRI pin: if Plausible redeploys this script the browser refuses to run it
+     (analytics stop, the tool keeps working). Refresh deliberately with:
+     curl -s https://plausible.io/js/script.outbound-links.js | openssl dgst -sha384 -binary | openssl base64 -A -->
+<script defer data-domain="toolymctoolface.com" src="https://plausible.io/js/script.outbound-links.js" integrity="sha384-lnP8QtLFKzqZ7DRBlL06WjW/+zvVEoeyx2yeyF1TybVJKZW+FguErL7q5IizQyqD" crossorigin="anonymous"></script>
 </head>
 <body>
 
