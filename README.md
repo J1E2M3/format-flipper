@@ -76,6 +76,8 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 - **Strict parsing** (CSV, TSV, Markdown): off by default. These formats are traditionally lenient — ragged rows are backfilled and unterminated quotes absorbed. Turn strict parsing on to make malformed input throw with a row number instead, when you need a data-integrity guarantee.
 - **Keyboard**: `Ctrl/⌘+Enter` converts, `Ctrl/⌘+Shift+S` swaps formats, `Ctrl/⌘+Shift+L` copies a settings link, `Esc` dismisses the toast.
 - **Share links**: the current formats and options sync into the URL fragment (`#from=csv&to=json&…`), and "Copy settings link" puts a shareable URL on your clipboard. **Only settings are encoded — never your data.** Fragments aren't sent to any server.
+- **Drag & drop**: drop a file onto the source panel and it loads with the format inferred from the extension — free for everyone.
+- **Pro (batch conversion)**: drop *multiple* files and download them all converted as a zip, still entirely in your browser. Unlocked by a license key verified **offline** with Ed25519 against a public key baked into the page — activation makes no network call. The key is stored in localStorage (`ff-license`), the only thing the tool ever stores; see [privacy.html](./privacy.html). The repo ships a demo signing keypair (`tools/demo-license-key.pem` + `tools/sign-license.js`) so the flow is testable; regenerate with `tools/generate-license-keypair.js` before selling real keys.
 
 ## The npm package and CLI
 

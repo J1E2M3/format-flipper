@@ -14,7 +14,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-TtM5Jrequ2l+GslEIEk/Q9x2QyYrSJDgyakzrfwO36w='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-ZJUFDdmIVbfqV/3D15ExGtzcO80r4ZLrUOVtw/Q/a9s='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <title>JSON to SQL Converter — Free, No Upload · Tooly McToolface</title>
 <meta name="description" content="Convert JSON to SQL INSERT statements free, in your browser — no upload. Array of objects in, CREATE TABLE + INSERT out, instantly.">
 <meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
@@ -254,6 +254,7 @@
     font-family: 'JetBrains Mono', monospace; font-size: 13px;
   }
   .skip-link:focus { left: 16px; top: 16px; }
+  .sample-chip.pro-active { border-color: var(--accent); color: var(--accent); }
   html, body {
     background: var(--bg); color: var(--ink);
     font-family: 'Inter', system-ui, sans-serif;
@@ -760,6 +761,7 @@
       <span class="options-empty">—</span>
     </div>
     <button class="sample-chip" id="shareBtn" title="Copy a link to these settings">Copy settings link</button>
+    <button class="sample-chip" id="proBtn" title="Pro: batch-convert multiple files at once">Pro</button>
   </div>
 
   <div class="samples-row">
@@ -817,6 +819,10 @@
       <div class="faq-item">
         <h3>Are there keyboard shortcuts?</h3>
         <p>Yes: <code>Ctrl/⌘+Enter</code> converts, <code>Ctrl/⌘+Shift+S</code> swaps the from/to formats, <code>Ctrl/⌘+Shift+L</code> copies a settings link, and <code>Esc</code> dismisses the toast. <em>Ctrl/⌘+K opens the site-wide command palette.</em></p>
+      </div>
+      <div class="faq-item">
+        <h3>What is Pro?</h3>
+        <p>One paid feature: <em>batch conversion</em> — drop multiple files onto the source panel and download them all converted, zipped, still entirely in your browser. A license key is verified offline against a public key baked into this page (no server call, ever) and stored in your browser's localStorage under <code>ff-license</code> — the only thing this tool ever stores, and it never leaves your device. Single-file drag &amp; drop is free for everyone.</p>
       </div>
       <div class="faq-item">
         <h3>What about XLSX?</h3>
@@ -2504,6 +2510,197 @@ function copyShareLink() {
 
 $('#shareBtn').addEventListener('click', copyShareLink);
 
+// ============================================================
+// Pro — offline license verification + batch conversion
+// Validation never makes a network call: the key is checked against
+// this Ed25519 public key with WebCrypto, on your device.
+// NOTE: demo keypair — regenerate with tools/generate-license-keypair.js
+// and replace this constant before selling real keys.
+// ============================================================
+const PRO_PUBLIC_KEY = 'n7JDLaTs+BZvqb6kC3C2EJWgPD+oIQo0uKAvmQtiydA=';
+const LICENSE_STORAGE_KEY = 'ff-license';
+let proLicense = null; // verified payload, or null
+
+function b64uDecode(s) {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function verifyLicense(key) {
+  try {
+    const parts = String(key).trim().split('.');
+    if (parts.length !== 3 || parts[0] !== 'FF1') return null;
+    const payload = b64uDecode(parts[1]);
+    const signature = b64uDecode(parts[2]);
+    const pubBytes = b64uDecode(PRO_PUBLIC_KEY);
+    const pub = await crypto.subtle.importKey('raw', pubBytes, { name: 'Ed25519' }, false, ['verify']);
+    const ok = await crypto.subtle.verify('Ed25519', pub, signature, payload);
+    if (!ok) return null;
+    const data = JSON.parse(new TextDecoder().decode(payload));
+    return data && data.plan === 'pro' ? data : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function renderProState() {
+  const btn = $('#proBtn');
+  if (proLicense) {
+    btn.textContent = 'Pro ✓';
+    btn.classList.add('pro-active');
+    btn.title = 'Pro active — licensed to ' + (proLicense.email || 'you');
+  } else {
+    btn.textContent = 'Pro';
+    btn.classList.remove('pro-active');
+    btn.title = 'Pro: batch-convert multiple files at once';
+  }
+}
+
+async function activateLicense(key, persist) {
+  const payload = await verifyLicense(key);
+  if (!payload) return false;
+  proLicense = payload;
+  if (persist) {
+    try { localStorage.setItem(LICENSE_STORAGE_KEY, String(key).trim()); } catch (e) { /* private mode */ }
+  }
+  renderProState();
+  return true;
+}
+
+$('#proBtn').addEventListener('click', async () => {
+  if (proLicense) {
+    showToast('Pro active — licensed to ' + (proLicense.email || 'you'));
+    return;
+  }
+  const key = prompt('Paste your Pro license key (verified offline — no server call):');
+  if (!key) return;
+  if (await activateLicense(key, true)) {
+    showToast('Pro activated — batch conversion unlocked');
+  } else {
+    showToast('That key did not verify — check for missing characters');
+  }
+});
+
+// ============================================================
+// Batch conversion (Pro) + single-file drag & drop (free)
+// ============================================================
+const EXT_TO_FORMAT = (() => {
+  const map = {};
+  for (const [fmt, ext] of Object.entries(FORMAT_EXT)) map[ext] = fmt;
+  Object.assign(map, { yml: 'yaml', jsonl: 'ndjson', markdown: 'md', htm: 'html', props: 'properties' });
+  return map;
+})();
+
+// ZIP-LIB start — store-only zip writer (no compression: converted text
+// is small, and this keeps the code auditable in a few dozen lines)
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZip(entries) {
+  const enc = new TextEncoder();
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+  const u16 = v => new Uint8Array([v & 0xFF, (v >> 8) & 0xFF]);
+  const u32 = v => new Uint8Array([v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF]);
+  for (const { name, text } of entries) {
+    const nameB = enc.encode(name);
+    const data = enc.encode(text);
+    const crc = crc32(data);
+    const local = [u32(0x04034B50), u16(20), u16(0x0800), u16(0), u16(0), u16(0),
+      u32(crc), u32(data.length), u32(data.length), u16(nameB.length), u16(0), nameB, data];
+    central.push({ nameB, crc, size: data.length, offset });
+    for (const part of local) { chunks.push(part); offset += part.length; }
+  }
+  const cdStart = offset;
+  for (const e of central) {
+    const rec = [u32(0x02014B50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0),
+      u32(e.crc), u32(e.size), u32(e.size), u16(e.nameB.length), u16(0), u16(0), u16(0), u16(0),
+      u32(0), u32(e.offset), e.nameB];
+    for (const part of rec) { chunks.push(part); offset += part.length; }
+  }
+  chunks.push(u32(0x06054B50), u16(0), u16(0), u16(central.length), u16(central.length),
+    u32(offset - cdStart), u32(cdStart), u16(0));
+  return new Blob(chunks, { type: 'application/zip' });
+}
+// ZIP-LIB end
+
+async function handleDroppedFiles(files) {
+  if (files.length === 1) {
+    // Single file: free for everyone — load it as the source
+    const file = files[0];
+    const text = await file.text();
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const fmt = EXT_TO_FORMAT[ext];
+    if (fmt) {
+      state.from = fmt;
+      $('#fromSelect').value = fmt;
+      $('#sourceHeadTitle').textContent = 'Source · ' + FORMAT_LABELS[fmt];
+      renderOptions();
+    }
+    $('#sourceInput').value = text;
+    convert();
+    syncUrl();
+    showToast('Loaded ' + file.name);
+    return;
+  }
+  if (!proLicense) {
+    showToast('Batch conversion is a Pro feature — click Pro to enter a license key');
+    return;
+  }
+  const outputs = [];
+  const errors = [];
+  for (const file of files) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const from = EXT_TO_FORMAT[ext];
+    const base = file.name.replace(/\.[^.]*$/, '');
+    if (!from) { errors.push(file.name + ': unrecognized extension'); continue; }
+    try {
+      const out = SERIALIZERS[state.to](PARSERS[from](await file.text(), state.opts), state.opts);
+      outputs.push({ name: base + '.' + FORMAT_EXT[state.to], text: out });
+    } catch (err) {
+      errors.push(file.name + ': ' + err.message);
+    }
+  }
+  if (errors.length) outputs.push({ name: '_errors.txt', text: errors.join('\n') + '\n' });
+  if (outputs.length === (errors.length ? 1 : 0)) {
+    showToast('Batch failed — no file could be converted');
+    return;
+  }
+  const url = URL.createObjectURL(buildZip(outputs));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'format-flipper-batch.zip';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Batch: ' + (outputs.length - (errors.length ? 1 : 0)) + ' converted' +
+    (errors.length ? ', ' + errors.length + ' failed (see _errors.txt)' : ''));
+}
+
+const srcPanel = $('#sourceInput');
+srcPanel.addEventListener('dragover', e => { e.preventDefault(); });
+srcPanel.addEventListener('drop', e => {
+  if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+  e.preventDefault();
+  handleDroppedFiles([...e.dataTransfer.files]);
+});
+
 // Init
 const MOD = /Mac|iP/.test(navigator.platform) ? '⌘' : 'Ctrl';
 $('#swapBtn').title = 'Swap from/to (' + MOD + '+Shift+S)';
@@ -2511,6 +2708,10 @@ $('#shareBtn').title = 'Copy a link to these settings (' + MOD + '+Shift+L)';
 applyUrlSettings();
 renderOptions();
 convert();
+try {
+  const stored = localStorage.getItem(LICENSE_STORAGE_KEY);
+  if (stored) activateLicense(stored, false);
+} catch (e) { /* storage unavailable — stays free */ }
 
 })();
 </script>

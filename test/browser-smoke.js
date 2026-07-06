@@ -13,7 +13,7 @@
 // script, and that noise is not a defect in the tool.
 
 const path = require('node:path');
-const { execSync } = require('node:child_process');
+const { execSync } = require('node:child_process'); // npm-root fallback + license signing
 
 function loadPlaywright() {
   try {
@@ -249,12 +249,28 @@ function loadPlaywright() {
   }
   await pairPage.close();
 
+  // Pro license activation: offline Ed25519 verify via the page UI
+  try {
+    const licenseKey = execSync(
+      `"${process.execPath}" "${path.join(__dirname, '..', 'tools', 'sign-license.js')}" smoke@example.com`
+    ).toString().trim();
+    page.once('dialog', dialog => dialog.accept(licenseKey));
+    await page.click('#proBtn');
+    await page.waitForFunction(
+      () => document.querySelector('#proBtn').textContent === 'Pro ✓',
+      undefined,
+      { timeout: 5000 }
+    );
+  } catch (e) {
+    failures.push('pro license: activation via #proBtn did not reach "Pro ✓" state');
+  }
+
   await browser.close();
 
   for (const f of failures) console.error('FAIL  ' + f);
   for (const e of pageErrors) console.error('PAGEERROR  ' + e);
   if (failures.length || pageErrors.length) process.exit(1);
-  console.log('SMOKE OK (14 cases)');
+  console.log('SMOKE OK (15 cases)');
 })().catch(err => {
   console.error(err);
   process.exit(1);

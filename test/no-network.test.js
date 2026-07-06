@@ -24,7 +24,6 @@ const FORBIDDEN = [
   [/sendBeacon/, 'sendBeacon'],
   [/\bWebSocket\b/, 'WebSocket'],
   [/\bEventSource\b/, 'EventSource'],
-  [/localStorage/, 'localStorage'],
   [/sessionStorage/, 'sessionStorage'],
   [/document\.cookie/, 'document.cookie'],
   [/indexedDB/i, 'indexedDB'],
@@ -40,4 +39,21 @@ test('no-network: no network or persistence API outside the declared scripts', (
   for (const [re, name] of FORBIDDEN) {
     assert(!re.test(rest), `${name} found in index.html outside the declared external scripts`);
   }
+});
+
+// localStorage has exactly one sanctioned use: the Pro license key,
+// disclosed in the FAQ and privacy.html. Every call must go through
+// LICENSE_STORAGE_KEY — anything else is an undisclosed persistence
+// surface and fails here.
+test('no-network: localStorage is used only for the disclosed license key', () => {
+  const calls = rest.match(/localStorage\.\w+\([^)]*\)?/g) || [];
+  assert(calls.length > 0, 'expected the license-key localStorage calls to exist');
+  for (const call of calls) {
+    assert(
+      /^localStorage\.(getItem|setItem|removeItem)\(LICENSE_STORAGE_KEY/.test(call),
+      `undisclosed localStorage use: ${call}`
+    );
+  }
+  // The disclosed key name in the FAQ must match the code's constant.
+  assert(/LICENSE_STORAGE_KEY = 'ff-license'/.test(rest), 'LICENSE_STORAGE_KEY constant changed — update FAQ + privacy.html');
 });
