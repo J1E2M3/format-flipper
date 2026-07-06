@@ -120,3 +120,29 @@ test('csv → json and json → csv cross-format conversions', () => {
   const csv = convert('[{"id": 1, "name": "Ada"}]', 'json', 'csv');
   assertEq(csv, 'id,name\n1,Ada');
 });
+
+test('csv strict: unterminated quote throws', () => {
+  assertThrows(
+    () => PARSERS.csv('a,b\n"unterminated,x', { strictParse: true }),
+    /unterminated quoted field/
+  );
+});
+
+test('csv strict: ragged row throws with the row number', () => {
+  assertThrows(
+    () => PARSERS.csv('a,b\n1,2\n3', { strictParse: true }),
+    /row 3 has 1 field, expected 2/
+  );
+});
+
+test('csv lenient default: same malformed inputs are absorbed', () => {
+  assertEq(PARSERS.csv('a,b\n"unterminated,x'), [{ a: 'unterminated,x', b: '' }]);
+  assertEq(PARSERS.csv('a,b\n1,2\n3'), [{ a: 1, b: 2 }, { a: 3, b: '' }]);
+});
+
+test('tsv strict: ragged row throws', () => {
+  assertThrows(
+    () => PARSERS.tsv('a\tb\n1\t2\t3', { strictParse: true }),
+    /row 2 has 3 fields, expected 2/
+  );
+});

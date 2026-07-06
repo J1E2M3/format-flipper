@@ -73,6 +73,7 @@ Every combination works in both directions — JSON → TOML, TOML → JSON, and
 - **CSV delimiters**: choose comma, semicolon, pipe, or tab — independently for parsing (`Input delimiter`) and output (`Output delimiter`). TSV has no option; tab-separated *is* the format.
 - **SQL identifier quotes**: MySQL backticks (default), ANSI double quotes, or SQL Server brackets.
 - **Coerce types**: on by default; turn it off to keep every tabular cell exactly the string you typed (`"007"` stays `"007"`).
+- **Strict parsing** (CSV, TSV, Markdown): off by default. These formats are traditionally lenient — ragged rows are backfilled and unterminated quotes absorbed. Turn strict parsing on to make malformed input throw with a row number instead, when you need a data-integrity guarantee.
 - **Keyboard**: `Ctrl/⌘+Enter` converts, `Ctrl/⌘+Shift+S` swaps formats, `Ctrl/⌘+Shift+L` copies a settings link, `Esc` dismisses the toast.
 - **Share links**: the current formats and options sync into the URL fragment (`#from=csv&to=json&…`), and "Copy settings link" puts a shareable URL on your clipboard. **Only settings are encoded — never your data.** Fragments aren't sent to any server.
 

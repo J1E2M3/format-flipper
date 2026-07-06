@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--
+  Format Flipper — Privacy
+  Copyright (c) 2026 Tooly McToolface · MIT License
+  https://github.com/J1E2M3/format-flipper
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Privacy · Format Flipper · Tooly McToolface</title>
+<meta name="description" content="How Format Flipper handles your data: pasted content never leaves your browser; cookieless analytics only.">
+<link rel="canonical" href="https://toolymctoolface.com/format/privacy/">
+<meta name="robots" content="index, follow">
+<style>
+  :root {
+    --bg: #0E0D0B; --surface: #181613; --border: #2A2621;
+    --ink: #F2EDE4; --ink-soft: #A69F93; --accent: #F4A940;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @font-face {
+    font-family: 'Fraunces'; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url('fonts/fraunces-normal-latin-8f90dc37.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Inter'; font-style: normal; font-weight: 400 600; font-display: swap;
+    src: url('fonts/inter-normal-latin-6ab57b19.woff2') format('woff2');
+  }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .crumb { font-size: 13px; color: var(--ink-soft); margin-bottom: 32px; display: inline-block; }
+  h1 { font-family: 'Fraunces', serif; font-size: 34px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .updated { color: var(--ink-soft); font-size: 13px; margin-bottom: 36px; }
+  h2 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 500; margin: 36px 0 10px; }
+  p, ul { margin-bottom: 14px; color: var(--ink); }
+  ul { padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  strong { font-weight: 600; }
+  em { color: var(--accent); font-style: italic; }
+  code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  footer { border-top: 1px solid var(--border); margin-top: 56px; padding-top: 20px; font-size: 13px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="crumb" href="./">&larr; Back to Format Flipper</a>
+  <h1>Privacy</h1>
+  <p class="updated">Effective July 6, 2026 &middot; applies to the Format Flipper tool at toolymctoolface.com/format/</p>
+
+  <div class="card"><strong>The short version:</strong> the data you paste into Format Flipper is <em>never uploaded anywhere</em>. Conversion runs entirely in your browser. The only third party this page talks to is our cookieless analytics provider, which counts visits &mdash; not content.</div>
+
+  <h2>Your pasted data</h2>
+  <p>Everything you paste, convert, copy, or download stays in your browser tab. The tool makes no network request containing your data &mdash; no upload endpoint exists. This is verifiable: open DevTools, watch the Network tab while converting, or read the <a href="https://github.com/J1E2M3/format-flipper" rel="noopener">open source</a>. An automated test in the repository (<code>test/no-network.test.js</code>) fails the build if any network or storage API is ever added to the page outside the two script tags disclosed below.</p>
+
+  <h2>Analytics (Plausible)</h2>
+  <p>We load one analytics script from <strong>plausible.io</strong>, a privacy-focused, cookieless analytics service. It records pageviews and outbound link clicks with standard request metadata: truncated/hashed identifiers derived from your IP address and browser, referrer, and country. It sets no cookies, stores nothing on your device, and never sees what you paste into the tool. Plausible acts as our data processor; see the <a href="https://plausible.io/data-policy" rel="noopener">Plausible data policy</a>. Legal basis under GDPR: legitimate interest in understanding aggregate usage. Because no cookies or persistent identifiers are used, no consent banner is required.</p>
+
+  <h2>Site functionality (commandk.js)</h2>
+  <p>The page also loads <code>/commandk.js</code>, the Tooly McToolface site-wide command palette (the Ctrl/&#8984;+K menu). It is served from this site, not a third party.</p>
+
+  <h2>Settings links</h2>
+  <p>The &ldquo;Copy settings link&rdquo; feature encodes your chosen formats and options in the URL fragment (the part after <code>#</code>). Fragments are never sent to any server. Your source data is never encoded into a link.</p>
+
+  <h2>What we don&rsquo;t do</h2>
+  <ul>
+    <li>No accounts, no sign-up, no email collection</li>
+    <li>No cookies, no localStorage, no fingerprinting</li>
+    <li>No advertising or ad-tech scripts</li>
+    <li>No sale or sharing of personal information (CCPA: we do not sell or share)</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>Since we hold no personal data about you, there is nothing for us to export or delete. For questions about aggregate analytics or anything on this page, email <a href="mailto:toolymctoolface@gmail.com">toolymctoolface@gmail.com</a>. EU/UK visitors may also lodge a complaint with their supervisory authority.</p>
+
+  <h2>Children</h2>
+  <p>Format Flipper is a developer utility, not directed to children under 13, and collects no personal information from anyone.</p>
+
+  <h2>Changes</h2>
+  <p>If the tool&rsquo;s data handling ever changes (for example, an optional feature that stores a setting on your device), this page and the tool&rsquo;s FAQ will be updated first, before the change ships.</p>
+  <footer>&copy; 2026 &middot; Tooly McToolface &middot; This page loads no scripts at all &mdash; view source to check.</footer>
+</div>
+</body>
+</html>

@@ -150,6 +150,7 @@ Each lives in its own section of `index.html` (not yet extracted into separate f
 - First row is treated as header on parse
 - Cell text is type-coerced by default (`"true"` → `true`, `"42"` → `42`); the input-side "Coerce types" toggle turns this off for all untyped tabular formats
 - CSV's delimiter is selectable per side (comma, semicolon, pipe, or tab — `csvDelimiterIn` for parsing, `csvDelimiterOut` for output), chosen explicitly rather than auto-detected so parsing stays deterministic. TSV gets no delimiter option: tab-separated *is* the format, and CSV's Tab choice covers that shape
+- Parsing is deliberately lenient by default (ragged rows backfilled, unterminated quotes absorbed — matching how real-world CSV behaves); the `strictParse` option makes both conditions throw with a row number instead. Markdown tables share the same lenient-default/strict-option contract
 - On serialize, arrays of objects become rows; everything else stringifies the top-level
 
 ### XML

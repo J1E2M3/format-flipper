@@ -61,3 +61,13 @@ test('md → json and json → md cross-format conversions', () => {
   const md = convert('[{"a": 1, "b": "x"}]', 'json', 'md');
   assertEq(md, ['| a | b |', '|---|---|', '| 1 | x |'].join('\n'));
 });
+
+test('md strict: ragged table row throws with the row number', () => {
+  const input = '| a | b |\n|---|---|\n| 1 | 2 |\n| 3 |';
+  assertThrows(() => PARSERS.md(input, { strictParse: true }), /table row 4 has 1 cell, expected 2/);
+});
+
+test('md lenient default: ragged rows are backfilled', () => {
+  const input = '| a | b |\n|---|---|\n| 3 |';
+  assertEq(PARSERS.md(input), [{ a: 3, b: '' }]);
+});

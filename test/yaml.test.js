@@ -41,3 +41,14 @@ test('yaml → json conversion', () => {
 test('yaml: empty documents parse to an empty value', () => {
   assert(PARSERS.yaml('\n') == null, 'expected null or undefined');
 });
+
+test('yaml: throws on malformed input', () => {
+  let threw = false;
+  try {
+    PARSERS.yaml('a: [1, 2');
+  } catch (err) {
+    threw = true;
+    assert(err.message.length > 0, 'error should carry a message');
+  }
+  assert(threw, 'malformed yaml should throw');
+});

@@ -52,6 +52,7 @@ const DEFAULT_OPTS = {
   sqlTable: 'data',
   sqlQuote: 'backtick',
   coerceTypes: true,
+  strictParse: false,
   csvDelimiterIn: 'comma',
   csvDelimiterOut: 'comma',
 };

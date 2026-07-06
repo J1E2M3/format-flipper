@@ -14,7 +14,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-UXJhd0r15SgeSEG7cO0oVHk66HLRkuLJK3uAPBaIQv4='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://plausible.io 'sha256-QRVkQc5eXDV7tR6PHW3gZW2JsbHqeI5yG7yM7b1B4zw=' 'sha256-cxmtd6J0r7lph8f7EMf/TeVGDZsP+DKu382C0JDto6w='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://plausible.io; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; manifest-src 'self'">
 <title>Format Flipper — Convert JSON, YAML, CSV, XML, SQL · Tooly McToolface</title>
 <meta name="description" content="Convert between JSON, NDJSON, YAML, TOML, INI, .properties, CSV, TSV, XML, Markdown tables, HTML tables, and SQL INSERT. 12 formats, any direction. Free, in your browser.">
 <meta name="keywords" content="json to csv, csv to json, yaml converter, json to yaml, toml converter, json to toml, toml to json, json to sql, csv to sql, xml to json, markdown table generator, format converter">
@@ -832,7 +832,9 @@
         <a href="/blog/">Blog</a>
         <a href="/benchmarks/">Benchmarks</a>
         <a href="/about/">About</a>
-        <a href="/privacy/">Privacy</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="accessibility.html">Accessibility</a>
         <a href="https://github.com/J1E2M3/format-flipper" rel="noopener">Source &amp; support</a>
       </div>
     </div>
@@ -955,6 +957,7 @@ function coerceScalar(text, opts) {
 }
 
 function parseDelimited(text, delimiter, opts) {
+  const strict = !!(opts && opts.strictParse);
   const rows = [];
   let current = [];
   let field = '';
@@ -980,6 +983,7 @@ function parseDelimited(text, delimiter, opts) {
       field += c; i++;
     }
   }
+  if (inQuotes && strict) throw new Error('unterminated quoted field');
   if (field !== '' || current.length > 0) {
     current.push(field);
     if (current.length > 1 || current[0] !== '') rows.push(current);
@@ -988,6 +992,9 @@ function parseDelimited(text, delimiter, opts) {
   const header = rows[0];
   const records = [];
   for (let r = 1; r < rows.length; r++) {
+    if (strict && rows[r].length !== header.length) {
+      throw new Error(`row ${r + 1} has ${rows[r].length} field${rows[r].length === 1 ? '' : 's'}, expected ${header.length}`);
+    }
     const obj = {};
     for (let c = 0; c < header.length; c++) {
       obj[header[c]] = coerceScalar(rows[r][c] ?? '', opts);
@@ -1073,9 +1080,13 @@ function parseMarkdownTable(text, opts) {
   };
   const header = parseCells(lines[0]);
   // lines[1] is the separator
+  const strict = !!(opts && opts.strictParse);
   const records = [];
   for (let i = 2; i < lines.length; i++) {
     const cells = parseCells(lines[i]);
+    if (strict && cells.length !== header.length) {
+      throw new Error(`table row ${i + 1} has ${cells.length} cell${cells.length === 1 ? '' : 's'}, expected ${header.length}`);
+    }
     const obj = {};
     for (let c = 0; c < header.length; c++) {
       obj[header[c]] = coerceScalar(cells[c] ?? '', opts);
@@ -2022,6 +2033,7 @@ const state = {
     sqlTable: 'data',
     sqlQuote: 'backtick',
     coerceTypes: true,
+    strictParse: false,
     csvDelimiterIn: 'comma',
     csvDelimiterOut: 'comma',
   },
@@ -2114,6 +2126,9 @@ function renderOptions() {
   // Input-side options
   if (state.from === 'csv') {
     opts.push({ type: 'select', key: 'csvDelimiterIn', label: 'Input delimiter', val: state.opts.csvDelimiterIn, choices: DELIM_CHOICES });
+  }
+  if (['csv', 'tsv', 'md'].includes(state.from)) {
+    opts.push({ type: 'checkbox', key: 'strictParse', label: 'Strict parsing', val: state.opts.strictParse });
   }
   if (['csv', 'tsv', 'md', 'html', 'xml', 'sql', 'ini', 'properties'].includes(state.from)) {
     opts.push({ type: 'checkbox', key: 'coerceTypes', label: 'Coerce types', val: state.opts.coerceTypes });
@@ -2404,6 +2419,7 @@ const URL_ENUMS = {
   sqlQuote: ['backtick', 'ansi', 'bracket'],
 };
 const URL_INTS = { jsonIndent: [0, 8], yamlIndent: [1, 8], xmlIndent: [0, 8] };
+const URL_BOOLS = ['coerceTypes', 'strictParse'];
 
 function serializeSettings() {
   const params = new URLSearchParams();
@@ -2412,7 +2428,7 @@ function serializeSettings() {
   for (const key of Object.keys(OPT_DEFAULTS)) {
     const val = state.opts[key];
     if (val === OPT_DEFAULTS[key]) continue;
-    if (key === 'coerceTypes') params.set(key, val ? '1' : '0');
+    if (URL_BOOLS.includes(key)) params.set(key, val ? '1' : '0');
     else params.set(key, String(val));
   }
   return params.toString();
@@ -2439,7 +2455,7 @@ function applyUrlSettings() {
     for (const key of Object.keys(OPT_DEFAULTS)) {
       if (!params.has(key)) continue;
       const raw = params.get(key);
-      if (key === 'coerceTypes') { state.opts[key] = raw !== '0'; continue; }
+      if (URL_BOOLS.includes(key)) { state.opts[key] = raw !== '0'; continue; }
       if (key in URL_INTS) {
         const n = parseInt(raw);
         if (Number.isFinite(n)) {
